@@ -1,162 +1,189 @@
 @import "tailwindcss";
-@import "tw-animate-css";
+@import "@fontsource/dm-serif-display/latin-400.css";
+@import "@fontsource/dm-serif-display/latin-400-italic.css";
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Sistema de marca SVODEB
+ * Colores derivados del material oficial (portada de los Estatutos e isotipo):
+ * azul marino profundo, azul real de las franjas y aguamarina grisácea del trazo del diente.
+ * Todos los pares texto/fondo usados cumplen WCAG AA (≥ 4.5:1).
+ */
+@theme {
+  --color-navy-950: #071238;
+  --color-navy-900: #0b1a4a;
+  --color-navy-800: #142a66;
+  --color-royal-700: #24478a;
+  --color-royal-600: #2e5aa8;
+  --color-royal-500: #4a76c0;
+  --color-aqua-500: #6f9ca6;
+  --color-aqua-400: #8db3ba;
+  --color-aqua-300: #a9cdd3;
+  --color-aqua-100: #e4eff1;
+  --color-mist: #f3f6f7;
+  --color-ink: #0e1b3d;
+  --color-ink-soft: #4a5873;
+  --color-slate: #5e6c86;
+  --color-line: #d5dfe4;
+  --color-on-navy: #b9cce0;
+  --color-on-navy-muted: #9fb0c9;
+  --color-success: #1f6f43;
+  --color-success-bg: #e8f5ee;
+  --color-danger: #a4271d;
+  --color-danger-bg: #fdecea;
 
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Plus Jakarta Sans Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display: "DM Serif Display", Georgia, "Times New Roman", serif;
+
+  --radius-card: 1.25rem;
 }
-
-:root {
-  --radius: 0.8rem;
-  --background: #f5f7f9;
-  --foreground: #102237;
-  --card: #ffffff;
-  --card-foreground: #102237;
-  --popover: #ffffff;
-  --popover-foreground: #102237;
-  --primary: #0056b3;
-  --primary-foreground: #ffffff;
-  --secondary: #e9eef4;
-  --secondary-foreground: #1d3247;
-  --muted: #edf2f5;
-  --muted-foreground: #66788a;
-  --accent: #dcecff;
-  --accent-foreground: #0a407f;
-  --destructive: #b42318;
-  --destructive-foreground: #ffffff;
-  --border: #dbe3ea;
-  --input: #dbe3ea;
-  --ring: #4c98d6;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #102237;
-  --sidebar-primary: #0056b3;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef5fb;
-  --sidebar-accent-foreground: #0056b3;
-  --sidebar-border: #dbe3ea;
-  --sidebar-ring: #4c98d6;
-}
-
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Plus Jakarta Sans", sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
-a { color: inherit; text-decoration: none; }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), a[href] { @apply cursor-pointer; }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-mist font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-royal-500);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  .on-navy :focus-visible {
+    outline-color: var(--color-aqua-300);
+  }
+  ::selection {
+    background: var(--color-aqua-300);
+    color: var(--color-navy-950);
+  }
 }
 
 @layer components {
-  .container {
-    width: 100%;
-    margin-inline: auto;
-    padding-inline: 1.25rem;
+  .container-site {
+    @apply mx-auto w-full max-w-[1200px] px-4 sm:px-8;
   }
-  @media (min-width: 640px) { .container { padding-inline: 2rem; } }
-  @media (min-width: 1280px) { .container { max-width: 1240px; padding-inline: 0; } }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-3 text-xs font-bold tracking-[0.16em] text-royal-600 uppercase;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-px w-7 bg-aqua-500;
+  }
+  .on-navy .eyebrow {
+    @apply text-aqua-300;
+  }
+
+  /* Tracking negativo solo en tamaños grandes: evita letras que se tocan en tamaños medianos. */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+  }
+  .display-xl {
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  .btn {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[0.95rem] font-bold transition duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply bg-royal-600 text-white shadow-[0_10px_24px_-12px_rgba(46,90,168,0.9)] hover:bg-royal-700;
+  }
+  .btn-secondary {
+    @apply border border-royal-600/35 text-royal-700 hover:border-royal-600 hover:bg-aqua-100;
+  }
+  .on-navy .btn-secondary {
+    @apply border-white/35 text-white hover:border-white hover:bg-white/10;
+  }
+  .link-arrow {
+    @apply inline-flex items-center gap-1.5 font-bold text-royal-600 underline-offset-4 hover:underline;
+  }
+
+  .card {
+    @apply rounded-(--radius-card) border border-line bg-white;
+  }
+
+  .field-label {
+    @apply text-sm font-semibold text-ink;
+  }
+  .field-input {
+    @apply min-h-12 w-full rounded-xl border border-line bg-white px-4 text-base text-ink transition placeholder:text-slate/80 focus:border-royal-500 focus:ring-4 focus:ring-royal-500/15 focus:outline-none aria-invalid:border-danger aria-invalid:ring-danger/15;
+  }
+  .field-error {
+    @apply text-sm font-medium text-danger;
+  }
+  .field-hint {
+    @apply text-sm text-slate;
+  }
 }
 
-.font-display { font-family: "DM Serif Display", Georgia, serif; }
-.text-balance { text-wrap: balance; }
+/* Franjas de la portada de los Estatutos: aguamarina + azul real. */
+.brand-stripes {
+  background: linear-gradient(
+    to bottom,
+    var(--color-aqua-400) 0 4px,
+    transparent 4px 7px,
+    var(--color-royal-600) 7px 16px
+  );
+  height: 16px;
+}
 
-.hero-grid {
-  background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
-  background-size: 58px 58px;
-  mask-image: linear-gradient(to bottom, black, transparent 90%);
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
-.hero-image {
-  background-image: linear-gradient(90deg, rgba(4,20,39,.97) 0%, rgba(4,20,39,.83) 33%, rgba(4,20,39,.18) 76%, rgba(4,20,39,.22) 100%), url("/manus-storage/svodeb-hero_ffde01ad.jpg");
-  background-position: center;
-  background-size: cover;
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.noise::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: .1;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
+.animate-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.2s forwards;
 }
-.surface {
-  border: 1px solid rgba(219, 227, 234, .92);
-  background: rgba(255,255,255,.84);
-  box-shadow: 0 20px 60px rgba(21, 42, 66, .06);
-  backdrop-filter: blur(14px);
+.animate-rise {
+  animation: rise 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-.section-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: .65rem;
-  color: #1768b6;
-  font-size: .7rem;
-  font-weight: 800;
-  letter-spacing: .18em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-.section-kicker::before {
-  content: "";
-  width: 28px;
-  height: 1px;
-  background: #4da1df;
-}
-.card-lift { transition: transform .24s cubic-bezier(.23,1,.32,1), box-shadow .24s ease, border-color .24s ease; }
-.card-lift:hover { transform: translateY(-5px); box-shadow: 0 24px 60px rgba(21, 42, 66, .11); border-color: #b9d0e4; }
-.primary-button { transition: transform .16s ease, box-shadow .2s ease, background .2s ease; }
-.primary-button:hover { box-shadow: 0 14px 28px rgba(0, 86, 179, .2); background: #0c67c8; }
-.primary-button:active { transform: scale(.97); }
-.ghost-button { transition: background .2s ease, color .2s ease, border-color .2s ease, transform .16s ease; }
-.ghost-button:hover { background: #eaf3fb; border-color: #a5c6e0; color: #0056b3; }
-.ghost-button:active { transform: scale(.97); }
-.reveal { animation: reveal .7s cubic-bezier(.23,1,.32,1) both; }
-.reveal-delay-1 { animation-delay: .12s; }
-.reveal-delay-2 { animation-delay: .22s; }
-.reveal-delay-3 { animation-delay: .34s; }
-@keyframes reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal { animation: none; } *, *::before, *::after { transition-duration: .01ms !important; } }
 
-/* Lightweight scrollbar for the specialist module. */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #edf2f5; }
-::-webkit-scrollbar-thumb { background: #b7c9d8; border-radius: 999px; border: 2px solid #edf2f5; }
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .animate-rise {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

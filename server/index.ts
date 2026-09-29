@@ -1,33 +1,86 @@
-import express from "express";
-import { createServer } from "http";
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createApp } from "./app";
+import { loadConfig } from "./config";
+import {
+  SmtpApplicationIntake,
+  unconfiguredIntake,
+} from "./membership/adapters/smtp-intake";
+import {
+  makeSubmitApplication,
+  randomReference,
+  systemClock,
+  type Logger,
+} from "./membership/submit-application";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+/** Logger JSON por línea; nunca recibe datos personales (ver caso de uso). */
+const logger: Logger = {
+  info: (event, meta) =>
+    console.log(
+      JSON.stringify({
+        level: "info",
+        event,
+        ...meta,
+        at: new Date().toISOString(),
+      })
+    ),
+  error: (event, meta) =>
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event,
+        ...meta,
+        at: new Date().toISOString(),
+      })
+    ),
+};
 
-async function startServer() {
-  const app = express();
-  const server = createServer(app);
+function main(): void {
+  const config = loadConfig(process.env);
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  // Serve static files from dist/public in production
-  const staticPath =
-    process.env.NODE_ENV === "production"
-      ? path.resolve(__dirname, "public")
-      : path.resolve(__dirname, "..", "dist", "public");
+  const intake = config.smtp
+    ? new SmtpApplicationIntake(config.smtp, logger)
+    : unconfiguredIntake;
+  if (!config.smtp) {
+    logger.info("membership.intake_disabled", {
+      hint: "Configura SMTP_* para habilitar la recepción",
+    });
+  }
 
-  app.use(express.static(staticPath));
-
-  // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
+  const app = createApp({
+    submitApplication: makeSubmitApplication({
+      intake,
+      clock: systemClock,
+      references: randomReference,
+      logger,
+    }),
+    logger,
+    trustProxyHops: config.trustProxyHops,
+    allowedOrigins: config.allowedOrigins,
+    hsts: config.env === "production",
+    // En producción el bundle vive en dist/index.js y el cliente en dist/public.
+    staticDir:
+      config.env === "production" ? path.resolve(__dirname, "public") : null,
+    publicSiteUrl: config.publicSiteUrl ?? null,
   });
 
-  const port = process.env.PORT || 3000;
-
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  const server = app.listen(config.port, () => {
+    logger.info("server.started", { port: config.port, env: config.env });
   });
+
+  const shutdown = (signal: string) => {
+    logger.info("server.stopping", { signal });
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-startServer().catch(console.error);
+try {
+  main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
