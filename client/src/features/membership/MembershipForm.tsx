@@ -1,3 +1,5 @@
+// Debe ser el primer import: configura zod antes de construir los esquemas.
+import "@/lib/zod-csp";
 import { AlertCircle, CheckCircle2, Loader2, Mail, Send } from "lucide-react";
 import {
   useEffect,

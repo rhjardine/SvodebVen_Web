@@ -5,6 +5,7 @@ import { ORGANIZACION } from "@/content/site";
 /**
  * BORRADOR en lenguaje claro. Debe ser revisado por la directiva y asesoría legal
  * antes de la publicación en producción (ver docs/ROADMAP.md).
+ * PENDIENTE: revisión legal del Aviso de privacidad.
  */
 export default function Privacy() {
   useEffect(() => {

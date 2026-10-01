@@ -1,2 +1,34 @@
-/** Rutas que el cliente sabe renderizar. El servidor responde 404 real para el resto. */
-export const CLIENT_ROUTES: ReadonlySet<string> = new Set(["/", "/privacidad"]);
+/**
+ * Rutas que el cliente sabe renderizar. Cada una se prerenderiza en build a su
+ * propio HTML; el servidor responde 404 real (con 404.html) para el resto.
+ */
+export type PrerenderedRoute = Readonly<{
+  path: string;
+  file: string;
+  title: string;
+}>;
+
+const SITE_NAME = "SVODEB";
+
+export const PRERENDERED_ROUTES: readonly PrerenderedRoute[] = Object.freeze([
+  {
+    path: "/",
+    file: "index.html",
+    title: `${SITE_NAME} · Sociedad Venezolana de Operatoria Dental, Estética y Biomateriales`,
+  },
+  {
+    path: "/privacidad",
+    file: "privacidad.html",
+    title: `Aviso de privacidad · ${SITE_NAME}`,
+  },
+]);
+
+export const NOT_FOUND_PAGE: PrerenderedRoute = Object.freeze({
+  path: "/404",
+  file: "404.html",
+  title: `Página no encontrada · ${SITE_NAME}`,
+});
+
+export const CLIENT_ROUTES: ReadonlySet<string> = new Set(
+  PRERENDERED_ROUTES.map(route => route.path)
+);

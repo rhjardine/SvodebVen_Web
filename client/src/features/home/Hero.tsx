@@ -28,12 +28,12 @@ export function Hero() {
           </p>
           <h1
             id="hero-title"
-            className="display display-xl animate-rise mt-7 text-[3.3rem] [animation-delay:80ms] sm:text-[4.8rem] lg:text-[6rem]"
+            className="display display-xl mt-7 text-[3.3rem] sm:text-[4.8rem] lg:text-[6rem]"
           >
             Ciencia que se convierte en{" "}
             <em className="text-aqua-300">confianza.</em>
           </h1>
-          <p className="animate-rise mt-7 max-w-xl text-lg leading-8 text-on-navy [animation-delay:160ms] sm:text-xl sm:leading-9">
+          <p className="mt-7 max-w-xl text-lg leading-8 text-on-navy sm:text-xl sm:leading-9">
             La comunidad científica venezolana que impulsa la excelencia en
             operatoria dental, estética y biomateriales.
           </p>

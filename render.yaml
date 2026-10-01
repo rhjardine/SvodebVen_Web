@@ -1,0 +1,35 @@
+# Blueprint de Render (https://render.com/docs/blueprint-spec).
+# Despliega el contenedor definido en el Dockerfile. Los secretos se cargan en el
+# panel de Render (sync: false): nunca se versionan en el repositorio.
+services:
+  - type: web
+    name: svodeb-web
+    runtime: docker
+    plan: starter
+    region: oregon
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: PUBLIC_SITE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SECRETARIA_EMAIL
+        sync: false

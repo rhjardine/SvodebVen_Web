@@ -1,3 +1,4 @@
+import compression from "compression";
 import express, {
   type ErrorRequestHandler,
   type Express,
@@ -8,7 +9,11 @@ import {
   MEMBERSHIP_ENDPOINT,
   type ApiErrorBody,
 } from "../shared/membership/api";
-import { CLIENT_ROUTES } from "../shared/routes";
+import {
+  CLIENT_ROUTES,
+  NOT_FOUND_PAGE,
+  PRERENDERED_ROUTES,
+} from "../shared/routes";
 import { originGuard } from "./http/origin-guard";
 import { rateLimit } from "./http/rate-limit";
 import { securityHeaders } from "./http/security-headers";
@@ -82,6 +87,8 @@ export function createApp(deps: AppDeps): Express {
   app.disable("x-powered-by");
   app.set("trust proxy", deps.trustProxyHops);
   app.use(securityHeaders({ hsts: deps.hsts }));
+  // gzip/deflate para HTML, CSS, JS y JSON: clave con conexiones lentas.
+  app.use(compression());
 
   app.get("/api/health", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -124,7 +131,13 @@ export function createApp(deps: AppDeps): Express {
 
   if (deps.staticDir) {
     const staticDir = deps.staticDir;
-    const indexHtml = path.join(staticDir, "index.html");
+    const pageFiles: ReadonlyMap<string, string> = new Map(
+      PRERENDERED_ROUTES.map(route => [
+        route.path,
+        path.join(staticDir, route.file),
+      ])
+    );
+    const notFoundHtml = path.join(staticDir, NOT_FOUND_PAGE.file);
 
     app.use(
       express.static(staticDir, {
@@ -143,10 +156,12 @@ export function createApp(deps: AppDeps): Express {
       })
     );
 
-    // SPA: rutas conocidas → 200; el resto → 404 real (evita "soft 404" en buscadores).
+    // Páginas prerenderizadas: rutas conocidas → 200; el resto → 404 real con su HTML.
     app.get("*", (req, res) => {
       res.setHeader("Cache-Control", "no-cache");
-      res.status(CLIENT_ROUTES.has(req.path) ? 200 : 404).sendFile(indexHtml);
+      const page = pageFiles.get(req.path);
+      if (page) res.status(200).sendFile(page);
+      else res.status(404).sendFile(notFoundHtml);
     });
   }
 

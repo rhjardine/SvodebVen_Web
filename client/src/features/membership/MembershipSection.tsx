@@ -1,12 +1,6 @@
-import { lazy, Suspense } from "react";
+import { Suspense, useContext } from "react";
 import { SectionHeading } from "@/components/layout/SectionHeading";
-
-// Carga diferida: la validación (zod) y el formulario no bloquean el primer render.
-const MembershipForm = lazy(() =>
-  import("./MembershipForm").then(module => ({
-    default: module.MembershipForm,
-  }))
-);
+import { MembershipFormComponent } from "./form-slot";
 
 function FormSkeleton() {
   return (
@@ -43,6 +37,7 @@ const PASOS = Object.freeze([
 ] as const);
 
 export function MembershipSection() {
+  const MembershipForm = useContext(MembershipFormComponent);
   return (
     <section
       id="afiliacion"

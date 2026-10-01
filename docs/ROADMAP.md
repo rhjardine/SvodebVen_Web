@@ -100,12 +100,40 @@ Otros hallazgos:
 
 ## 4. Plan de sprints
 
-### Sprint 2 · Contenido oficial y puesta en línea (1–2 semanas)
+### Sprint 2 · Preparación para producción ✅ (parte técnica entregada)
+
+Entregado:
+
+- **Prerenderizado (SSG):** cada ruta se genera como HTML completo en el build y React la hidrata en el navegador. La planilla se renderiza en el servidor sin dejar límites de Suspense pendientes, así la hidratación no necesita scripts en línea (la CSP los prohíbe).
+- **Compresión** gzip en el servidor: el JavaScript inicial baja de 292 KB a 92 KB transferidos.
+- **Zod sin JIT** en el navegador (`jitless`): compatible con la CSP sin `'unsafe-eval'`.
+- **Resultado medido con Lighthouse** (móvil, 4G lenta simulada):
+
+  | Métrica | Antes | Después |
+  |---|---|---|
+  | LCP | 4,1 s | **1,9 s** |
+  | FCP | 3,6 s | **1,6 s** |
+  | Rendimiento | 88 | **99** |
+  | Accesibilidad | 100 | **100** |
+  | Buenas prácticas | 93 | **100** |
+  | SEO | 100 | **100** |
+
+- **Contenedor Docker** multi-etapa, usuario sin privilegios y healthcheck; blueprint `render.yaml` para Render.
+- **Scripts de operación:**
+  - `pnpm smoke <url>`: 7 verificaciones de producción.
+  - `pnpm smtp:check`: valida credenciales sin enviar correos.
+  - `pnpm content:audit [--strict]`: lista los datos institucionales aún no confirmados.
+- **CI ampliado:**
+  - El job `verify` suma la prueba de humo sobre el build y la auditoría de contenido.
+  - Nuevo job `lighthouse` con presupuestos que bloquean el merge si se incumplen.
+- 29 pruebas automatizadas (se agregó la verificación de páginas prerenderizadas, los 404 reales y la compresión).
+- Guía paso a paso en `docs/DESPLIEGUE.md`.
+
+Pendiente (depende de la directiva, ver §3):
 
 - Cargar las respuestas 1–7 y sustituir el logotipo provisional.
-- Desplegar en un host con Node (Render, Railway o un VPS) con HTTPS, `.env` real y SMTP.
-- Prueba de humo en producción: envío real de afiliación, acuse recibido y cabeceras verificadas con securityheaders.com.
-- Métricas de campo con Lighthouse CI (objetivo LCP < 2,5 s en 4G lenta).
+- Elegir hosting y dominio, configurar SMTP y ejecutar la verificación de `docs/DESPLIEGUE.md` §5.
+- Validar la imagen Docker con el pipeline de prerender en el primer despliegue. En este entorno, Docker Hub limitó las descargas (429) y no se pudo reconstruir la imagen final.
 
 ### Sprint 3 · Gestión de expedientes (3–4 semanas)
 

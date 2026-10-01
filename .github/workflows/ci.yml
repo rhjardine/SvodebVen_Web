@@ -24,3 +24,32 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm audit --prod --audit-level=high
+      - name: Prueba de humo sobre el build de producción
+        run: |
+          NODE_ENV=production PORT=4173 node dist/index.js &
+          for i in $(seq 1 20); do curl -fs http://localhost:4173/api/health && break; sleep 0.5; done
+          pnpm smoke http://localhost:4173
+      - run: pnpm content:audit
+
+  lighthouse:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Lighthouse CI (presupuestos de rendimiento y accesibilidad)
+        run: pnpm lighthouse
+      - name: Publicar informes como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/reports
+          retention-days: 14
