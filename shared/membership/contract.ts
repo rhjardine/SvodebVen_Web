@@ -16,7 +16,7 @@ export const submitApplicationContract = defineRoute({
   method: "POST",
   path: MEMBERSHIP_ENDPOINT,
   auth: "public",
-  idempotent: false,
+  idempotent: true,
   cache: "no-store",
   successStatus: 201,
   body: SolicitudAfiliacionSchema,

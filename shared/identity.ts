@@ -12,3 +12,7 @@ export type Identity = Readonly<{
 }>;
 
 export const isStaff = (role: Role): boolean => role !== "member";
+
+/** Quien puede revisar expedientes (datos personales de postulantes): secretaría y administración. */
+export const isReviewer = (role: Role): boolean =>
+  role === "secretaria" || role === "admin";

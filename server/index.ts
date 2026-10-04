@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
 import { purgeExpiredIdempotencyKeys } from "./adapters/postgres/idempotency";
-import { createPool } from "./adapters/postgres/pool";
+import { createPool, type DbPool } from "./adapters/postgres/pool";
 import {
   ConsoleLoginLinkMailer,
   SmtpLoginLinkMailer,
@@ -12,6 +12,8 @@ import {
 import { createJwtService } from "./auth/jwt";
 import { createAuthModule, type AuthModule } from "./auth/module";
 import { createAuthService } from "./auth/service";
+import { PostgresApplicationIntake } from "./membership/adapters/postgres-intake";
+import { createApplicationReview } from "./membership/review";
 import { describeConfigError, loadConfig, type AppConfig } from "./config";
 import {
   SmtpApplicationIntake,
@@ -46,15 +48,17 @@ const logger: Logger = {
     ),
 };
 
-function composeAuth(config: AppConfig): AuthModule | null {
-  if (!config.auth || !config.databaseUrl) {
+function composeAuth(
+  config: AppConfig,
+  pool: DbPool | null
+): AuthModule | null {
+  if (!config.auth || !pool) {
     logger.info("auth.disabled", {
       hint: "Define DATABASE_URL y JWT_SECRET para habilitar el acceso de miembros",
     });
     return null;
   }
   const settings = config.auth;
-  const pool = createPool(config.databaseUrl, logger);
   // Retención de claves de idempotencia (24 h): purga horaria, sin impedir el cierre del proceso.
   setInterval(
     () => {
@@ -104,12 +108,21 @@ function composeAuth(config: AppConfig): AuthModule | null {
 function main(config: AppConfig): void {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  const intake = config.smtp
+  // Un solo pool para todo: sesiones, expedientes y revisión (cada operación fija su identidad).
+  const pool = config.databaseUrl
+    ? createPool(config.databaseUrl, logger)
+    : null;
+  const smtpIntake = config.smtp
     ? new SmtpApplicationIntake(config.smtp, logger)
-    : unconfiguredIntake;
-  if (!config.smtp) {
+    : null;
+
+  // Con base de datos el expediente se PERSISTE (y el correo solo notifica); sin ella, el correo es el destino.
+  const intake = pool
+    ? new PostgresApplicationIntake(pool, smtpIntake, logger)
+    : (smtpIntake ?? unconfiguredIntake);
+  if (!pool && !smtpIntake) {
     logger.info("membership.intake_disabled", {
-      hint: "Configura SMTP_* para habilitar la recepción",
+      hint: "Configura DATABASE_URL o SMTP_* para habilitar la recepción",
     });
   }
 
@@ -129,7 +142,8 @@ function main(config: AppConfig): void {
       config.env === "production" ? path.resolve(__dirname, "public") : null,
     publicSiteUrl: config.publicSiteUrl ?? null,
     cookieSecure: config.auth?.cookieSecure ?? config.env === "production",
-    auth: composeAuth(config),
+    auth: composeAuth(config, pool),
+    review: pool ? createApplicationReview(pool) : null,
   });
 
   const server = app.listen(config.port, () => {

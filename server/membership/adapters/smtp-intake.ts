@@ -14,6 +14,7 @@ import type {
   ApplicationIntake,
   DeliveryFailure,
   Logger,
+  Receipt,
   MembershipApplication,
 } from "../submit-application";
 
@@ -104,7 +105,7 @@ export class SmtpApplicationIntake implements ApplicationIntake {
 
   async deliver(
     application: MembershipApplication
-  ): Promise<Result<void, DeliveryFailure>> {
+  ): Promise<Result<Receipt, DeliveryFailure>> {
     // 1) Notificación a secretaría: si falla, la solicitud NO se considera recibida.
     const toSecretaria = await tryAsync(
       () =>
@@ -136,7 +137,10 @@ export class SmtpApplicationIntake implements ApplicationIntake {
         reason: ack.error,
       });
     }
-    return ok(undefined);
+    return ok({
+      referencia: application.referencia,
+      recibidaEn: application.recibidaEn,
+    });
   }
 }
 

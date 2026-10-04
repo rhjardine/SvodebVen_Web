@@ -8,6 +8,7 @@ import {
   type DeliveryFailure,
   type Logger,
   type MembershipApplication,
+  type Receipt,
 } from "../server/membership/submit-application";
 import { unconfiguredIntake } from "../server/membership/adapters/smtp-intake";
 import { HONEYPOT_FIELD, MEMBERSHIP_ENDPOINT } from "../shared/membership/api";
@@ -22,12 +23,17 @@ class InMemoryIntake implements ApplicationIntake {
   constructor(private readonly failWith?: Error) {}
   deliver(
     application: MembershipApplication
-  ): Promise<Result<void, DeliveryFailure>> {
+  ): Promise<Result<Receipt, DeliveryFailure>> {
     if (this.failWith) {
       return Promise.resolve(err({ reason: this.failWith.message }));
     }
     this.received.push(application);
-    return Promise.resolve(ok(undefined));
+    return Promise.resolve(
+      ok({
+        referencia: application.referencia,
+        recibidaEn: application.recibidaEn,
+      })
+    );
   }
 }
 
@@ -76,7 +82,11 @@ const post = (
 ) =>
   fetch(`${base}${MEMBERSHIP_ENDPOINT}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
+      ...headers,
+    },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 
@@ -92,6 +102,21 @@ describe(`POST ${MEMBERSHIP_ENDPOINT}`, () => {
     });
     expect(intake.received).toHaveLength(1);
     expect(Object.isFrozen(intake.received[0])).toBe(true);
+  });
+
+  it("exige Idempotency-Key (400 si falta o no es UUID)", async () => {
+    const base = await start(new InMemoryIntake());
+    for (const key of [undefined, "no-es-uuid"]) {
+      const res = await fetch(`${base}${MEMBERSHIP_ENDPOINT}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(key ? { "Idempotency-Key": key } : {}),
+        },
+        body: JSON.stringify(solicitudValida),
+      });
+      expect(res.status).toBe(400);
+    }
   });
 
   it("aplica cabeceras de seguridad", async () => {

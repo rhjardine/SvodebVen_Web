@@ -16,6 +16,11 @@ function toApiError(error: SubmitApplicationError): ApiError {
         "INTAKE_UNAVAILABLE",
         "La recepción en línea aún no está habilitada."
       );
+    case "IDEMPOTENCY_KEY_REUSED":
+      return apiError(
+        "IDEMPOTENCY_KEY_REUSED",
+        "Esta clave de envío ya se usó con otra solicitud. Recarga la página e inténtalo de nuevo."
+      );
     case "DELIVERY_FAILED":
       return apiError(
         "DELIVERY_FAILED",
@@ -40,8 +45,8 @@ export function mountMembershipRoutes(
   mountRoute(
     target,
     submitApplicationContract,
-    async ({ body }) => {
-      const result = await deps.submitApplication(body);
+    async ({ body }, { idempotency }) => {
+      const result = await deps.submitApplication(body, { idempotency });
       if (!result.success) return err(toApiError(result.error));
       return ok({
         referencia: result.value.referencia,

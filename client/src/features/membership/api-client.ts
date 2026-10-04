@@ -3,6 +3,10 @@ import { submitApplicationContract } from "@shared/membership/contract";
 import type { FieldErrors } from "@shared/errors";
 import type { SolicitudAfiliacion } from "@shared/membership/schema";
 import { callApi, type ClientError } from "@/lib/api";
+import { createAttemptKey, type AttemptKey } from "@/lib/idempotency";
+
+/** Una clave por intento de afiliación; se reutiliza en reintentos por fallo de red. */
+let attempt: AttemptKey | null = null;
 
 /** Resultados que la planilla sabe presentar (traducción de los errores genéricos del cliente). */
 export type SubmitOutcome =
@@ -39,11 +43,16 @@ export async function submitMembershipApplication(
   solicitud: SolicitudAfiliacion,
   honeypot: string
 ): Promise<SubmitOutcome> {
+  attempt ??= createAttemptKey();
   const result = await callApi(
     submitApplicationContract,
     { body: solicitud },
-    { extraBody: { [HONEYPOT_FIELD]: honeypot } }
+    {
+      extraBody: { [HONEYPOT_FIELD]: honeypot },
+      idempotencyKey: attempt.current(),
+    }
   );
+  attempt.settle(result.success ? "success" : result.error);
   return result.success
     ? { kind: "success", referencia: result.value.referencia }
     : toOutcome(result.error);

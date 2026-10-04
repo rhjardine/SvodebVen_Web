@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import type { SolicitudAfiliacion } from "../../shared/membership/schema";
 import { err, ok, type Result } from "../../shared/result";
+import type { IdempotencyInput } from "../http/idempotency";
 
 // ─── Dominio ────────────────────────────────────────────────────────────────
 
@@ -13,19 +14,33 @@ export type MembershipApplication = Readonly<{
 
 export type SubmitApplicationError =
   | Readonly<{ kind: "INTAKE_UNAVAILABLE" }>
+  | Readonly<{ kind: "IDEMPOTENCY_KEY_REUSED" }>
   | Readonly<{ kind: "DELIVERY_FAILED"; cause: string }>;
 
 // ─── Puertos (implementados en infraestructura) ─────────────────────────────
 
 /** Fallo de entrega ya traducido por el adaptador (nunca una excepción). */
-export type DeliveryFailure = Readonly<{ reason: string }>;
+export type DeliveryFailure = Readonly<{
+  reason: string;
+  /** La Idempotency-Key ya se usó con otra solicitud. */
+  keyReused?: boolean;
+}>;
 
-/** Destino de las solicitudes: correo de secretaría hoy, base de datos mañana. */
+/** Comprobante de recepción. En un reintento idempotente es el de la PRIMERA recepción. */
+export type Receipt = Readonly<{ referencia: string; recibidaEn: Date }>;
+
+/** Contexto de la petición que el destino puede usar para deduplicar (si soporta transacciones). */
+export type DeliveryContext = Readonly<{
+  idempotency: IdempotencyInput | null;
+}>;
+
+/** Destino de las solicitudes: base de datos (persistente) y/o correo de secretaría. */
 export interface ApplicationIntake {
   readonly isConfigured: boolean;
   deliver(
-    application: MembershipApplication
-  ): Promise<Result<void, DeliveryFailure>>;
+    application: MembershipApplication,
+    context: DeliveryContext
+  ): Promise<Result<Receipt, DeliveryFailure>>;
 }
 
 export interface Clock {
@@ -76,8 +91,9 @@ export type SubmitApplicationDeps = Readonly<{
 export function makeSubmitApplication(deps: SubmitApplicationDeps) {
   /** Recibe datos YA validados por el contrato de la ruta (frontera HTTP). */
   return async function submitApplication(
-    datos: SolicitudAfiliacion
-  ): Promise<Result<MembershipApplication, SubmitApplicationError>> {
+    datos: SolicitudAfiliacion,
+    context: DeliveryContext = { idempotency: null }
+  ): Promise<Result<Receipt, SubmitApplicationError>> {
     if (!deps.intake.isConfigured) {
       deps.logger.error("membership.intake_unavailable");
       return err({ kind: "INTAKE_UNAVAILABLE" });
@@ -90,8 +106,10 @@ export function makeSubmitApplication(deps: SubmitApplicationDeps) {
       datos: Object.freeze({ ...datos }),
     });
 
-    const delivery = await deps.intake.deliver(application);
+    const delivery = await deps.intake.deliver(application, context);
     if (!delivery.success) {
+      if (delivery.error.keyReused)
+        return err({ kind: "IDEMPOTENCY_KEY_REUSED" });
       // Solo se registra la referencia: nunca datos personales en los logs.
       deps.logger.error("membership.delivery_failed", {
         referencia: application.referencia,
@@ -101,10 +119,10 @@ export function makeSubmitApplication(deps: SubmitApplicationDeps) {
     }
 
     deps.logger.info("membership.application_received", {
-      referencia: application.referencia,
+      referencia: delivery.value.referencia,
       categoria: application.datos.categoria,
     });
-    return ok(application);
+    return ok(delivery.value);
   };
 }
 

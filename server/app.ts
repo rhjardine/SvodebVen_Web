@@ -21,6 +21,8 @@ import type { RouteDeps } from "./http/route";
 import { AUTH_BASE } from "../shared/auth/contract";
 import { mountAuthRoutes, mountAuthUnavailable } from "./auth/http-routes";
 import type { AuthModule } from "./auth/module";
+import { mountAdminApplicationRoutes } from "./membership/admin-routes";
+import type { ApplicationReview } from "./membership/review";
 import { mountMembershipRoutes } from "./membership/http-routes";
 import {
   randomReference,
@@ -43,6 +45,8 @@ export type AppDeps = Readonly<{
   authRateLimit?: Readonly<{ windowMs: number; max: number }>;
   loginLinkPerEmailMax?: number;
   cookieSecure: boolean;
+  /** Revisión de expedientes (requiere base de datos); `null` = rutas admin inexistentes. */
+  review?: ApplicationReview | null;
   /** Módulo de autenticación; `null` si no hay base de datos (rutas /auth responden 503). */
   auth: AuthModule | null;
 }>;
@@ -159,6 +163,18 @@ export function createApp(deps: AppDeps): Express {
   );
   if (deps.auth) mountAuthRoutes(app, deps.auth, routeDeps);
   else mountAuthUnavailable(app, routeDeps);
+
+  // Panel de secretaría: solo con base de datos y sesión; límites y cuerpos acotados.
+  if (deps.review && deps.auth) {
+    app.use(
+      "/api/v1/admin",
+      originGuard(deps.allowedOrigins),
+      rateLimit({ windowMs: 60 * 1000, max: 120 }),
+      express.json({ limit: "4kb", strict: true }),
+      bodyParserErrors
+    );
+    mountAdminApplicationRoutes(app, deps.review, routeDeps);
+  }
 
   app.use("/api", apiNotFound);
 
