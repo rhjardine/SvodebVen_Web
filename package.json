@@ -25,6 +25,7 @@
     "db:local": "bash scripts/db-local.sh",
     "db:provision": "bash scripts/db-provision.sh",
     "lint": "eslint .",
+    "admin:create": "node --env-file-if-exists=.env --import tsx scripts/admin-create.ts",
     "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
     "express": "^4.21.2",
+    "jose": "^6.2.12",
     "lucide-react": "^0.453.0",
     "nodemailer": "^10.0.12",
     "pg": "^8.23.1",

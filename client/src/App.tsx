@@ -1,5 +1,6 @@
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Access from "./pages/Access";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
@@ -10,6 +11,7 @@ export default function App() {
     <ErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/acceso" component={Access} />
         <Route path="/privacidad" component={Privacy} />
         <Route component={NotFound} />
       </Switch>

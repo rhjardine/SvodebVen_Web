@@ -8,7 +8,15 @@ import type { ApiError } from "../errors";
  * dejan de compilar (`tsc`) hasta que ambos se actualicen.
  */
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-export type AuthLevel = "public" | "member" | "staff";
+/** `optional` = pública, pero si hay sesión válida se entrega la identidad (p. ej. GET /auth/session). */
+export type AuthLevel = "public" | "optional" | "member" | "staff";
+
+/**
+ * Defensa CSRF adicional a SameSite=Strict: las mutaciones que dependen de cookies exigen esta
+ * cabecera personalizada, que un formulario o una petición entre sitios no puede enviar.
+ */
+export const CSRF_HEADER = "x-svodeb-csrf";
+export const CSRF_VALUE = "1";
 export type SuccessStatus = 200 | 201 | 202;
 
 export type CachePolicy =
@@ -21,6 +29,11 @@ export type RouteContract = Readonly<{
   auth: AuthLevel;
   /** Si es `true`, el servidor exige `Idempotency-Key` (UUID) en cada petición. */
   idempotent: boolean;
+  /**
+   * Exige la cabecera CSRF. Por defecto: toda mutación (no GET) que no sea pública.
+   * Poner `true` en rutas públicas que dependen de cookies (refresh, logout) o del inicio de sesión.
+   */
+  csrf?: boolean;
   cache: CachePolicy;
   successStatus: SuccessStatus;
   params?: z.ZodType;
@@ -29,6 +42,12 @@ export type RouteContract = Readonly<{
   /** Debe ser JSON puro (sin transformaciones): lo que el servidor envía es lo que el cliente valida. */
   response: z.ZodType;
 }>;
+
+export function needsCsrf(contract: RouteContract): boolean {
+  return (
+    contract.csrf ?? (contract.method !== "GET" && contract.auth !== "public")
+  );
+}
 
 export function defineRoute<const C extends RouteContract>(contract: C): C {
   return contract;

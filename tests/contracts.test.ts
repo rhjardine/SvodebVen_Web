@@ -80,6 +80,7 @@ beforeAll(async () => {
   app.use(express.json());
   const deps = {
     logger: silentLogger,
+    cookieSecure: false,
     resolveIdentity: (req: express.Request) =>
       Promise.resolve(ok(fakeIdentity(req.get("x-test-role")))),
   };
@@ -169,6 +170,7 @@ describe("mountRoute (servidor)", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-svodeb-csrf": "1",
           ...(role ? { "x-test-role": role } : {}),
         },
         body: JSON.stringify({ nombre: "Ana" }),
@@ -180,10 +182,23 @@ describe("mountRoute (servidor)", () => {
     expect(await ok201.json()).toEqual({ nombre: "Ana" });
   });
 
+  it("rechaza con 403 una mutación autenticada sin la cabecera CSRF", async () => {
+    const res = await fetch(`${base}/api/test/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-test-role": "admin" },
+      body: JSON.stringify({ nombre: "Ana" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
   it("rechaza con 415 un cuerpo que no es JSON en rutas con body", async () => {
     const res = await fetch(`${base}/api/test/items`, {
       method: "POST",
-      headers: { "Content-Type": "text/plain", "x-test-role": "admin" },
+      headers: {
+        "Content-Type": "text/plain",
+        "x-test-role": "admin",
+        "x-svodeb-csrf": "1",
+      },
       body: "nombre=Ana",
     });
     expect(res.status).toBe(415);

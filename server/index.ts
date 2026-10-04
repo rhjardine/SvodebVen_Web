@@ -1,6 +1,16 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
+import { createPool } from "./adapters/postgres/pool";
+import {
+  ConsoleLoginLinkMailer,
+  SmtpLoginLinkMailer,
+  unconfiguredLoginLinkMailer,
+  type LoginLinkMailer,
+} from "./adapters/mail/login-link-mailer";
+import { createJwtService } from "./auth/jwt";
+import { createAuthModule, type AuthModule } from "./auth/module";
+import { createAuthService } from "./auth/service";
 import { describeConfigError, loadConfig, type AppConfig } from "./config";
 import {
   SmtpApplicationIntake,
@@ -35,6 +45,52 @@ const logger: Logger = {
     ),
 };
 
+function composeAuth(config: AppConfig): AuthModule | null {
+  if (!config.auth || !config.databaseUrl) {
+    logger.info("auth.disabled", {
+      hint: "Define DATABASE_URL y JWT_SECRET para habilitar el acceso de miembros",
+    });
+    return null;
+  }
+  const settings = config.auth;
+  const pool = createPool(config.databaseUrl, logger);
+  const jwt = createJwtService({
+    secret: settings.jwtSecret,
+    ...(settings.jwtSecretPrevious
+      ? { previousSecret: settings.jwtSecretPrevious }
+      : {}),
+    issuer: "svodeb",
+    audience: "svodeb-web",
+    ttlSeconds: settings.accessTtlSeconds,
+  });
+  // El mailer de consola solo existe fuera de producción (ahí exigimos SMTP al cargar la config).
+  let mailer: LoginLinkMailer = unconfiguredLoginLinkMailer;
+  if (config.smtp) mailer = new SmtpLoginLinkMailer(config.smtp, logger);
+  else if (config.env !== "production") mailer = new ConsoleLoginLinkMailer();
+
+  return createAuthModule({
+    service: createAuthService({
+      pool,
+      jwt,
+      mailer,
+      logger,
+      siteUrl: settings.siteUrl,
+      ttls: {
+        accessSeconds: settings.accessTtlSeconds,
+        refreshSeconds: settings.refreshTtlSeconds,
+        loginLinkSeconds: settings.loginLinkTtlSeconds,
+      },
+      now: () => new Date(),
+    }),
+    jwt,
+    cookieSecure: settings.cookieSecure,
+    ttls: {
+      accessSeconds: settings.accessTtlSeconds,
+      refreshSeconds: settings.refreshTtlSeconds,
+    },
+  });
+}
+
 function main(config: AppConfig): void {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -62,6 +118,8 @@ function main(config: AppConfig): void {
     staticDir:
       config.env === "production" ? path.resolve(__dirname, "public") : null,
     publicSiteUrl: config.publicSiteUrl ?? null,
+    cookieSecure: config.auth?.cookieSecure ?? config.env === "production",
+    auth: composeAuth(config),
   });
 
   const server = app.listen(config.port, () => {

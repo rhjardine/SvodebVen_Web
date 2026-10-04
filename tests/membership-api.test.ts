@@ -57,6 +57,8 @@ async function start(
     hsts: true,
     staticDir: null,
     publicSiteUrl: "https://svodeb.example",
+    cookieSecure: false,
+    auth: null,
     membershipRateLimit: { windowMs: 60_000, max: options.max ?? 50 },
   });
   server = app.listen(0);

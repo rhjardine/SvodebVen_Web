@@ -1,9 +1,12 @@
 import type { IRouter, Request, RequestHandler, Response } from "express";
-import type {
-  CachePolicy,
-  HandlerResult,
-  RouteContract,
-  ServerInput,
+import {
+  CSRF_HEADER,
+  CSRF_VALUE,
+  needsCsrf,
+  type CachePolicy,
+  type HandlerResult,
+  type RouteContract,
+  type ServerInput,
 } from "../../shared/contracts/define";
 import {
   apiError,
@@ -22,10 +25,24 @@ import {
 import type { Logger } from "../membership/submit-application";
 import { respondError } from "./respond";
 
+/**
+ * Cookies de respuesta que un handler puede pedir. HttpOnly, SameSite=Strict y Secure los fija
+ * SIEMPRE el servidor (RouteDeps.cookieSecure): un handler no puede debilitarlos.
+ */
+export type CookieJar = Readonly<{
+  set: (
+    name: string,
+    value: string,
+    options: Readonly<{ maxAgeSeconds: number; path: string }>
+  ) => void;
+  clear: (name: string, path: string) => void;
+}>;
+
 /** Contexto que recibe cada handler (la identidad ya viene verificada). */
 export type HandlerContext = Readonly<{
   identity: Identity | null;
   req: Request;
+  cookies: CookieJar;
 }>;
 
 export type RouteHandler<C extends RouteContract> = (
@@ -41,7 +58,50 @@ export type IdentityResolver = (
 export type RouteDeps = Readonly<{
   logger: Logger;
   resolveIdentity?: IdentityResolver;
+  /** `true` en producción (HTTPS): las cookies llevan el atributo Secure. */
+  cookieSecure: boolean;
 }>;
+
+type CookieOp =
+  | Readonly<{
+      type: "set";
+      name: string;
+      value: string;
+      maxAgeSeconds: number;
+      path: string;
+    }>
+  | Readonly<{ type: "clear"; name: string; path: string }>;
+
+function createCookieJar(ops: CookieOp[]): CookieJar {
+  return {
+    set: (name, value, options) =>
+      void ops.push({ type: "set", name, value, ...options }),
+    clear: (name, path) => void ops.push({ type: "clear", name, path }),
+  };
+}
+
+function applyCookies(
+  res: Response,
+  ops: readonly CookieOp[],
+  secure: boolean
+): void {
+  for (const op of ops) {
+    const base = {
+      httpOnly: true,
+      secure,
+      sameSite: "strict" as const,
+      path: op.path,
+    };
+    if (op.type === "set") {
+      res.cookie(op.name, op.value, {
+        ...base,
+        maxAge: op.maxAgeSeconds * 1000,
+      });
+    } else {
+      res.clearCookie(op.name, base);
+    }
+  }
+}
 
 type Parts = Readonly<Record<string, unknown>>;
 
@@ -84,7 +144,7 @@ function authorize(
   contract: RouteContract,
   identity: Identity | null
 ): ApiError | null {
-  if (contract.auth === "public") return null;
+  if (contract.auth === "public" || contract.auth === "optional") return null;
   if (!identity) {
     return apiError("UNAUTHENTICATED", "Inicia sesión para continuar.");
   }
@@ -101,6 +161,8 @@ async function resolveIdentityFor(
 ): Promise<Result<Identity | null, ApiError>> {
   if (contract.auth === "public") return ok(null);
   if (!deps.resolveIdentity) {
+    // Identidad opcional sin autenticación habilitada: simplemente no hay sesión.
+    if (contract.auth === "optional") return ok(null);
     return err(
       apiError(
         "SERVICE_UNAVAILABLE",
@@ -108,7 +170,11 @@ async function resolveIdentityFor(
       )
     );
   }
-  return deps.resolveIdentity(req);
+  const resolved = await deps.resolveIdentity(req);
+  // Con identidad opcional, una sesión inválida equivale a "sin sesión", no a un error.
+  return contract.auth === "optional" && !resolved.success
+    ? ok(null)
+    : resolved;
 }
 
 /** Cada petición recorre: identidad → tipo de contenido → validación → handler → validación de salida. */
@@ -119,6 +185,13 @@ async function serve<C extends RouteContract>(
   req: Request,
   res: Response
 ): Promise<void> {
+  if (needsCsrf(contract) && req.get(CSRF_HEADER) !== CSRF_VALUE) {
+    return respondError(
+      res,
+      apiError("FORBIDDEN", "Falta la cabecera de seguridad de la solicitud.")
+    );
+  }
+
   const identity = await resolveIdentityFor(contract, req, deps);
   if (!identity.success) return respondError(res, identity.error);
 
@@ -139,8 +212,14 @@ async function serve<C extends RouteContract>(
   // es sólido porque `parseRequest` usó los mismos esquemas que definen `ServerInput<C>`.
   const input = parts.value as unknown as ServerInput<C>;
 
+  const cookieOps: CookieOp[] = [];
   const outcome = await tryAsync(
-    () => handler(input, { identity: identity.value, req }),
+    () =>
+      handler(input, {
+        identity: identity.value,
+        req,
+        cookies: createCookieJar(cookieOps),
+      }),
     cause => {
       deps.logger.error("http.handler_exception", {
         route: `${contract.method} ${contract.path}`,
@@ -149,6 +228,8 @@ async function serve<C extends RouteContract>(
       return apiError("INTERNAL_ERROR", "Ocurrió un error inesperado.");
     }
   );
+  // Las cookies pedidas se aplican tanto en éxito como en fallo (p. ej. limpiar una sesión inválida).
+  applyCookies(res, cookieOps, deps.cookieSecure);
   if (!outcome.success) return respondError(res, outcome.error);
   if (!outcome.value.success) return respondError(res, outcome.value.error);
 

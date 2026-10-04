@@ -8,7 +8,7 @@ import path from "node:path";
 import { apiError } from "../shared/errors";
 import { HONEYPOT_FIELD, MEMBERSHIP_ENDPOINT } from "../shared/membership/api";
 import {
-  CLIENT_ROUTES,
+  INDEXABLE_ROUTES,
   NOT_FOUND_PAGE,
   PRERENDERED_ROUTES,
 } from "../shared/routes";
@@ -17,6 +17,10 @@ import { originGuard } from "./http/origin-guard";
 import { rateLimit } from "./http/rate-limit";
 import { securityHeaders } from "./http/security-headers";
 import { respondError } from "./http/respond";
+import type { RouteDeps } from "./http/route";
+import { AUTH_BASE } from "../shared/auth/contract";
+import { mountAuthRoutes, mountAuthUnavailable } from "./auth/http-routes";
+import type { AuthModule } from "./auth/module";
 import { mountMembershipRoutes } from "./membership/http-routes";
 import {
   randomReference,
@@ -35,6 +39,12 @@ export type AppDeps = Readonly<{
   /** URL pública canónica (p. ej. https://svodeb.org). Habilita sitemap.xml. */
   publicSiteUrl: string | null;
   membershipRateLimit?: Readonly<{ windowMs: number; max: number }>;
+  /** `true` en producción (HTTPS): las cookies de sesión llevan Secure y prefijos __Host-/__Secure-. */
+  authRateLimit?: Readonly<{ windowMs: number; max: number }>;
+  loginLinkPerEmailMax?: number;
+  cookieSecure: boolean;
+  /** Módulo de autenticación; `null` si no hay base de datos (rutas /auth responden 503). */
+  auth: AuthModule | null;
 }>;
 
 const DEFAULT_MEMBERSHIP_RATE_LIMIT = Object.freeze({
@@ -87,7 +97,11 @@ export function createApp(deps: AppDeps): Express {
     res.json({ status: "ok" });
   });
 
-  const routeDeps = { logger: deps.logger };
+  const routeDeps: RouteDeps = {
+    logger: deps.logger,
+    cookieSecure: deps.cookieSecure,
+    ...(deps.auth ? { resolveIdentity: deps.auth.resolveIdentity } : {}),
+  };
 
   // Afiliación: protecciones de borde (origen, tasa, tamaño, bots) y luego la ruta por contrato.
   app.use(
@@ -116,6 +130,36 @@ export function createApp(deps: AppDeps): Express {
     route: routeDeps,
   });
 
+  // Autenticación: origen, cuerpo acotado y límites por IP y por correo antes de las rutas.
+  const authLimit = { windowMs: 10 * 60 * 1000, max: 30 };
+  const emailOf = (req: express.Request): string => {
+    const body = req.body as unknown;
+    const email =
+      typeof body === "object" && body !== null
+        ? (Reflect.get(body, "email") as unknown)
+        : undefined;
+    return typeof email === "string" && email.length <= 254
+      ? `email:${email.trim().toLowerCase()}`
+      : `ip:${req.ip ?? "unknown"}`;
+  };
+  app.use(
+    AUTH_BASE,
+    originGuard(deps.allowedOrigins),
+    rateLimit(deps.authRateLimit ?? authLimit),
+    express.json({ limit: "4kb", strict: true }),
+    bodyParserErrors
+  );
+  app.post(
+    `${AUTH_BASE}/login-link`,
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: deps.loginLinkPerEmailMax ?? 5,
+      keyOf: emailOf,
+    })
+  );
+  if (deps.auth) mountAuthRoutes(app, deps.auth, routeDeps);
+  else mountAuthUnavailable(app, routeDeps);
+
   app.use("/api", apiNotFound);
 
   app.get("/robots.txt", (_req, res) => {
@@ -130,9 +174,9 @@ export function createApp(deps: AppDeps): Express {
   if (deps.publicSiteUrl) {
     const siteUrl = deps.publicSiteUrl;
     app.get("/sitemap.xml", (_req, res) => {
-      const urls = [...CLIENT_ROUTES]
-        .map(route => `  <url><loc>${new URL(route, siteUrl).href}</loc></url>`)
-        .join("\n");
+      const urls = INDEXABLE_ROUTES.map(
+        route => `  <url><loc>${new URL(route, siteUrl).href}</loc></url>`
+      ).join("\n");
       res
         .type("application/xml")
         .send(

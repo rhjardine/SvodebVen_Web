@@ -6,6 +6,8 @@ export type PrerenderedRoute = Readonly<{
   path: string;
   file: string;
   title: string;
+  /** `false`: fuera del sitemap y con `noindex` (páginas de sesión). */
+  indexable?: boolean;
 }>;
 
 const SITE_NAME = "SVODEB";
@@ -21,6 +23,12 @@ export const PRERENDERED_ROUTES: readonly PrerenderedRoute[] = Object.freeze([
     file: "privacidad.html",
     title: `Aviso de privacidad · ${SITE_NAME}`,
   },
+  {
+    path: "/acceso",
+    file: "acceso.html",
+    title: `Acceso de miembros · ${SITE_NAME}`,
+    indexable: false,
+  },
 ]);
 
 export const NOT_FOUND_PAGE: PrerenderedRoute = Object.freeze({
@@ -32,3 +40,8 @@ export const NOT_FOUND_PAGE: PrerenderedRoute = Object.freeze({
 export const CLIENT_ROUTES: ReadonlySet<string> = new Set(
   PRERENDERED_ROUTES.map(route => route.path)
 );
+
+/** Rutas que van al sitemap (las de sesión quedan fuera). */
+export const INDEXABLE_ROUTES: readonly string[] = PRERENDERED_ROUTES.filter(
+  route => route.indexable !== false
+).map(route => route.path);

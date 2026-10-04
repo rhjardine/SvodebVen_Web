@@ -1,7 +1,10 @@
-import type {
-  ClientInput,
-  ResponseOf,
-  RouteContract,
+import {
+  CSRF_HEADER,
+  CSRF_VALUE,
+  needsCsrf,
+  type ClientInput,
+  type ResponseOf,
+  type RouteContract,
 } from "@shared/contracts/define";
 import {
   parseApiErrorBody,
@@ -105,6 +108,7 @@ export async function callApi<C extends RouteContract>(
   const headers: Record<string, string> = { Accept: "application/json" };
   const hasBody = contract.body !== undefined;
   if (hasBody) headers["Content-Type"] = "application/json";
+  if (needsCsrf(contract)) headers[CSRF_HEADER] = CSRF_VALUE;
   if (options.idempotencyKey)
     headers["Idempotency-Key"] = options.idempotencyKey;
 

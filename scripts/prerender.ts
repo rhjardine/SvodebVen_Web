@@ -75,7 +75,10 @@ function buildPage(
       /<title>[\s\S]*?<\/title>/,
       `<title>${escapeHtml(route.title)}</title>`
     )
-    .replace("</head>", `    ${preloads}\n  </head>`)
+    .replace(
+      "</head>",
+      `    ${preloads}\n${route.indexable === false ? '    <meta name="robots" content="noindex, nofollow" />\n' : ""}  </head>`
+    )
     .replace(ROOT_PLACEHOLDER, `<div id="root">${html}</div>`);
 }
 

@@ -48,6 +48,8 @@ beforeAll(async () => {
     hsts: false,
     staticDir: dir,
     publicSiteUrl: null,
+    cookieSecure: false,
+    auth: null,
   });
   server = app.listen(0);
   await new Promise<void>(resolve =>
