@@ -1,10 +1,13 @@
-import type { RequestHandler } from "express";
-import type { ApiErrorBody } from "../../shared/membership/api";
+import type { Request, RequestHandler } from "express";
+import { apiError } from "../../shared/errors";
+import { respondError } from "./respond";
 
 export type RateLimitOptions = Readonly<{
   windowMs: number;
   max: number;
   now?: () => number;
+  /** Clave de agrupación; por defecto la IP. Útil para limitar por correo, etc. */
+  keyOf?: (req: Request) => string;
 }>;
 
 type Bucket = { count: number; resetAt: number };
@@ -27,7 +30,7 @@ export function rateLimit(options: RateLimitOptions): RequestHandler {
   timer.unref();
 
   return (req, res, next) => {
-    const key = req.ip ?? "unknown";
+    const key = options.keyOf ? options.keyOf(req) : (req.ip ?? "unknown");
     const current = now();
     const bucket = buckets.get(key);
 
@@ -41,14 +44,13 @@ export function rateLimit(options: RateLimitOptions): RequestHandler {
     if (bucket.count > options.max) {
       const retryAfterSeconds = Math.ceil((bucket.resetAt - current) / 1000);
       res.setHeader("Retry-After", String(retryAfterSeconds));
-      const body: ApiErrorBody = {
-        error: {
-          code: "RATE_LIMITED",
-          message:
-            "Recibimos demasiadas solicitudes desde tu conexión. Intenta de nuevo en unos minutos.",
-        },
-      };
-      res.status(429).json(body);
+      respondError(
+        res,
+        apiError(
+          "RATE_LIMITED",
+          "Recibimos demasiadas solicitudes desde tu conexión. Intenta de nuevo en unos minutos."
+        )
+      );
       return;
     }
     next();

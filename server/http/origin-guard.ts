@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
-import type { ApiErrorBody } from "../../shared/membership/api";
+import { apiError } from "../../shared/errors";
+import { respondError } from "./respond";
 
 /**
  * Defensa CSRF complementaria: si hay orígenes configurados, un POST desde un
@@ -14,9 +15,6 @@ export function originGuard(allowedOrigins: readonly string[]): RequestHandler {
       next();
       return;
     }
-    const body: ApiErrorBody = {
-      error: { code: "FORBIDDEN_ORIGIN", message: "Origen no autorizado." },
-    };
-    res.status(403).json(body);
+    respondError(res, apiError("FORBIDDEN_ORIGIN", "Origen no autorizado."));
   };
 }

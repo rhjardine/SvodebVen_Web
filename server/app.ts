@@ -5,22 +5,23 @@ import express, {
   type RequestHandler,
 } from "express";
 import path from "node:path";
-import {
-  MEMBERSHIP_ENDPOINT,
-  type ApiErrorBody,
-} from "../shared/membership/api";
+import { apiError } from "../shared/errors";
+import { HONEYPOT_FIELD, MEMBERSHIP_ENDPOINT } from "../shared/membership/api";
 import {
   CLIENT_ROUTES,
   NOT_FOUND_PAGE,
   PRERENDERED_ROUTES,
 } from "../shared/routes";
+import { honeypotGuard } from "./http/honeypot";
 import { originGuard } from "./http/origin-guard";
 import { rateLimit } from "./http/rate-limit";
 import { securityHeaders } from "./http/security-headers";
-import { membershipRouter } from "./membership/http-routes";
-import type {
-  Logger,
-  SubmitApplication,
+import { respondError } from "./http/respond";
+import { mountMembershipRoutes } from "./membership/http-routes";
+import {
+  randomReference,
+  type Logger,
+  type SubmitApplication,
 } from "./membership/submit-application";
 
 export type AppDeps = Readonly<{
@@ -53,33 +54,24 @@ const bodyParserErrors: ErrorRequestHandler = (
       ? String(error.type)
       : "";
   if (type === "entity.too.large") {
-    const body: ApiErrorBody = {
-      error: {
-        code: "PAYLOAD_TOO_LARGE",
-        message: "La solicitud excede el tamaño permitido.",
-      },
-    };
-    res.status(413).json(body);
+    respondError(
+      res,
+      apiError("PAYLOAD_TOO_LARGE", "La solicitud excede el tamaño permitido.")
+    );
     return;
   }
   if (type === "entity.parse.failed") {
-    const body: ApiErrorBody = {
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "El cuerpo de la solicitud no es JSON válido.",
-      },
-    };
-    res.status(400).json(body);
+    respondError(
+      res,
+      apiError("BAD_REQUEST", "El cuerpo de la solicitud no es JSON válido.")
+    );
     return;
   }
   next(error);
 };
 
 const apiNotFound: RequestHandler = (_req, res) => {
-  const body: ApiErrorBody = {
-    error: { code: "NOT_FOUND", message: "Recurso no encontrado." },
-  };
-  res.status(404).json(body);
+  respondError(res, apiError("NOT_FOUND", "Recurso no encontrado."));
 };
 
 export function createApp(deps: AppDeps): Express {
@@ -95,14 +87,34 @@ export function createApp(deps: AppDeps): Express {
     res.json({ status: "ok" });
   });
 
+  const routeDeps = { logger: deps.logger };
+
+  // Afiliación: protecciones de borde (origen, tasa, tamaño, bots) y luego la ruta por contrato.
   app.use(
     MEMBERSHIP_ENDPOINT,
     originGuard(deps.allowedOrigins),
     rateLimit(deps.membershipRateLimit ?? DEFAULT_MEMBERSHIP_RATE_LIMIT),
     express.json({ limit: "16kb", strict: true }),
     bodyParserErrors,
-    membershipRouter(deps.submitApplication, deps.logger)
+    honeypotGuard({
+      field: HONEYPOT_FIELD,
+      onTrip: () => deps.logger.info("membership.honeypot_triggered"),
+      decoy: () => {
+        const now = new Date();
+        return {
+          status: 201,
+          body: {
+            referencia: randomReference.next(now),
+            recibidaEn: now.toISOString(),
+          },
+        };
+      },
+    })
   );
+  mountMembershipRoutes(app, {
+    submitApplication: deps.submitApplication,
+    route: routeDeps,
+  });
 
   app.use("/api", apiNotFound);
 
@@ -174,13 +186,10 @@ export function createApp(deps: AppDeps): Express {
     deps.logger.error("http.unhandled_error", {
       reason: error instanceof Error ? error.message : "unknown",
     });
-    const body: ApiErrorBody = {
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Ocurrió un error inesperado.",
-      },
-    };
-    res.status(500).json(body);
+    respondError(
+      res,
+      apiError("INTERNAL_ERROR", "Ocurrió un error inesperado.")
+    );
   };
   app.use(fallbackErrorHandler);
 

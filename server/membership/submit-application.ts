@@ -1,10 +1,5 @@
 import { randomInt } from "node:crypto";
-import {
-  SolicitudAfiliacionSchema,
-  toFieldErrors,
-  type FieldErrors,
-  type SolicitudAfiliacion,
-} from "../../shared/membership/schema";
+import type { SolicitudAfiliacion } from "../../shared/membership/schema";
 import { err, ok, type Result } from "../../shared/result";
 
 // ─── Dominio ────────────────────────────────────────────────────────────────
@@ -17,7 +12,6 @@ export type MembershipApplication = Readonly<{
 }>;
 
 export type SubmitApplicationError =
-  | Readonly<{ kind: "VALIDATION"; fields: FieldErrors }>
   | Readonly<{ kind: "INTAKE_UNAVAILABLE" }>
   | Readonly<{ kind: "DELIVERY_FAILED"; cause: string }>;
 
@@ -80,14 +74,10 @@ export type SubmitApplicationDeps = Readonly<{
 }>;
 
 export function makeSubmitApplication(deps: SubmitApplicationDeps) {
+  /** Recibe datos YA validados por el contrato de la ruta (frontera HTTP). */
   return async function submitApplication(
-    raw: unknown
+    datos: SolicitudAfiliacion
   ): Promise<Result<MembershipApplication, SubmitApplicationError>> {
-    const parsed = SolicitudAfiliacionSchema.safeParse(raw);
-    if (!parsed.success) {
-      return err({ kind: "VALIDATION", fields: toFieldErrors(parsed.error) });
-    }
-
     if (!deps.intake.isConfigured) {
       deps.logger.error("membership.intake_unavailable");
       return err({ kind: "INTAKE_UNAVAILABLE" });
@@ -97,7 +87,7 @@ export function makeSubmitApplication(deps: SubmitApplicationDeps) {
     const application: MembershipApplication = Object.freeze({
       referencia: deps.references.next(recibidaEn),
       recibidaEn,
-      datos: Object.freeze({ ...parsed.data }),
+      datos: Object.freeze({ ...datos }),
     });
 
     const delivery = await deps.intake.deliver(application);

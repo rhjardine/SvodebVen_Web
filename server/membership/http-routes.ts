@@ -1,135 +1,53 @@
-import { Router, type Request, type Response } from "express";
+import type { IRouter } from "express";
+import { apiError, type ApiError } from "../../shared/errors";
+import { submitApplicationContract } from "../../shared/membership/contract";
+import { err, ok } from "../../shared/result";
 import { exhaustive } from "../../shared/exhaustive";
-import {
-  HONEYPOT_FIELD,
-  type ApiErrorBody,
-  type SubmitApplicationSuccess,
-} from "../../shared/membership/api";
-import {
-  randomReference,
-  type Logger,
-  type SubmitApplication,
-  type SubmitApplicationError,
+import { mountRoute, type RouteDeps } from "../http/route";
+import type {
+  SubmitApplication,
+  SubmitApplicationError,
 } from "./submit-application";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function sendError(res: Response, error: SubmitApplicationError): void {
+function toApiError(error: SubmitApplicationError): ApiError {
   switch (error.kind) {
-    case "VALIDATION": {
-      const body: ApiErrorBody = {
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Revisa los campos marcados.",
-          fields: error.fields,
-        },
-      };
-      res.status(422).json(body);
-      return;
-    }
-    case "INTAKE_UNAVAILABLE": {
-      const body: ApiErrorBody = {
-        error: {
-          code: "INTAKE_UNAVAILABLE",
-          message: "La recepción en línea aún no está habilitada.",
-        },
-      };
-      res.status(503).json(body);
-      return;
-    }
-    case "DELIVERY_FAILED": {
-      const body: ApiErrorBody = {
-        error: {
-          code: "DELIVERY_FAILED",
-          message:
-            "No pudimos registrar tu solicitud. Intenta de nuevo en unos minutos.",
-        },
-      };
-      res.status(502).json(body);
-      return;
-    }
-    default: {
+    case "INTAKE_UNAVAILABLE":
+      return apiError(
+        "INTAKE_UNAVAILABLE",
+        "La recepción en línea aún no está habilitada."
+      );
+    case "DELIVERY_FAILED":
+      return apiError(
+        "DELIVERY_FAILED",
+        "No pudimos registrar tu solicitud. Intenta de nuevo en unos minutos."
+      );
+    default:
       exhaustive(error);
-      const body: ApiErrorBody = {
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Ocurrió un error inesperado.",
-        },
-      };
-      res.status(500).json(body);
-    }
+      return apiError("INTERNAL_ERROR", "Ocurrió un error inesperado.");
   }
 }
 
-export function membershipRouter(
-  submitApplication: SubmitApplication,
-  logger: Logger
-): Router {
-  const router = Router();
+export type MembershipRoutesDeps = Readonly<{
+  submitApplication: SubmitApplication;
+  route: RouteDeps;
+}>;
 
-  router.post("/", async (req: Request, res: Response) => {
-    try {
-      await handleSubmit(req, res);
-    } catch (cause) {
-      logger.error("membership.unexpected_error", {
-        reason: cause instanceof Error ? cause.message : "unknown",
+/** POST /api/v1/afiliaciones — el cuerpo ya llega validado por el contrato. */
+export function mountMembershipRoutes(
+  target: IRouter,
+  deps: MembershipRoutesDeps
+): void {
+  mountRoute(
+    target,
+    submitApplicationContract,
+    async ({ body }) => {
+      const result = await deps.submitApplication(body);
+      if (!result.success) return err(toApiError(result.error));
+      return ok({
+        referencia: result.value.referencia,
+        recibidaEn: result.value.recibidaEn.toISOString(),
       });
-      if (!res.headersSent) {
-        const body: ApiErrorBody = {
-          error: {
-            code: "INTERNAL_ERROR",
-            message: "Ocurrió un error inesperado.",
-          },
-        };
-        res.status(500).json(body);
-      }
-    }
-  });
-
-  async function handleSubmit(req: Request, res: Response): Promise<void> {
-    if (!req.is("application/json")) {
-      const body: ApiErrorBody = {
-        error: {
-          code: "UNSUPPORTED_MEDIA_TYPE",
-          message: "Se espera application/json.",
-        },
-      };
-      res.status(415).json(body);
-      return;
-    }
-
-    const payload: unknown = req.body;
-
-    // Honeypot: respuesta indistinguible de un éxito para no dar señales al bot.
-    if (
-      isRecord(payload) &&
-      typeof payload[HONEYPOT_FIELD] === "string" &&
-      payload[HONEYPOT_FIELD] !== ""
-    ) {
-      const now = new Date();
-      logger.info("membership.honeypot_triggered");
-      const decoy: SubmitApplicationSuccess = {
-        referencia: randomReference.next(now),
-        recibidaEn: now.toISOString(),
-      };
-      res.status(201).json(decoy);
-      return;
-    }
-
-    const result = await submitApplication(payload);
-    if (!result.success) {
-      sendError(res, result.error);
-      return;
-    }
-
-    const body: SubmitApplicationSuccess = {
-      referencia: result.value.referencia,
-      recibidaEn: result.value.recibidaEn.toISOString(),
-    };
-    res.status(201).json(body);
-  }
-
-  return router;
+    },
+    deps.route
+  );
 }

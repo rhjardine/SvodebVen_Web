@@ -151,14 +151,5 @@ export type SolicitudAfiliacion = Readonly<
   z.output<typeof SolicitudAfiliacionSchema>
 >;
 
-/** Mapa campo → primer mensaje de error, apto para pintar errores en línea. */
-export type FieldErrors = Readonly<Partial<Record<string, string>>>;
-
-export function toFieldErrors(error: z.ZodError): FieldErrors {
-  const errors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.length > 0 ? String(issue.path[0]) : "_form";
-    if (!(key in errors)) errors[key] = issue.message;
-  }
-  return Object.freeze(errors);
-}
+// Tipos y utilidades de errores por campo: viven en shared/errors (fuente única).
+export { toFieldErrors, type FieldErrors } from "../errors";

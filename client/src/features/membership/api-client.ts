@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { MEMBERSHIP_ENDPOINT, HONEYPOT_FIELD } from "@shared/membership/api";
-import type {
-  FieldErrors,
-  SolicitudAfiliacion,
-} from "@shared/membership/schema";
+import { HONEYPOT_FIELD } from "@shared/membership/api";
+import { submitApplicationContract } from "@shared/membership/contract";
+import type { FieldErrors } from "@shared/errors";
+import type { SolicitudAfiliacion } from "@shared/membership/schema";
+import { callApi, type ClientError } from "@/lib/api";
 
+/** Resultados que la planilla sabe presentar (traducción de los errores genéricos del cliente). */
 export type SubmitOutcome =
   | Readonly<{ kind: "success"; referencia: string }>
   | Readonly<{ kind: "validation"; fields: FieldErrors }>
@@ -12,71 +12,39 @@ export type SubmitOutcome =
   | Readonly<{ kind: "rate_limited" }>
   | Readonly<{ kind: "failed"; message: string }>;
 
-/** Las respuestas del servidor también se validan: nunca se confía en la forma del JSON. */
-const SuccessBody = z.object({
-  referencia: z.string().min(1),
-  recibidaEn: z.string(),
-});
-const ErrorBody = z.object({
-  error: z.object({
-    code: z.string(),
-    message: z.string(),
-    fields: z.record(z.string(), z.string()).optional(),
-  }),
-});
-
-const REQUEST_TIMEOUT_MS = 15_000;
 const GENERIC_FAILURE =
   "No pudimos enviar tu solicitud. Verifica tu conexión e inténtalo de nuevo.";
+
+function toOutcome(error: ClientError): SubmitOutcome {
+  switch (error.kind) {
+    case "INVALID_INPUT":
+      return { kind: "validation", fields: error.fields };
+    case "API": {
+      const { code, fields, message } = error.error;
+      if (code === "VALIDATION_ERROR") {
+        return { kind: "validation", fields: fields ?? {} };
+      }
+      if (code === "INTAKE_UNAVAILABLE") return { kind: "unavailable" };
+      if (code === "RATE_LIMITED") return { kind: "rate_limited" };
+      return { kind: "failed", message };
+    }
+    case "BAD_RESPONSE":
+    case "NETWORK":
+    case "TIMEOUT":
+      return { kind: "failed", message: GENERIC_FAILURE };
+  }
+}
 
 export async function submitMembershipApplication(
   solicitud: SolicitudAfiliacion,
   honeypot: string
 ): Promise<SubmitOutcome> {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(MEMBERSHIP_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ ...solicitud, [HONEYPOT_FIELD]: honeypot }),
-      signal: controller.signal,
-      credentials: "same-origin",
-    });
-    const json: unknown = await response.json().catch(() => null);
-
-    if (response.ok) {
-      const body = SuccessBody.safeParse(json);
-      return body.success
-        ? { kind: "success", referencia: body.data.referencia }
-        : { kind: "failed", message: GENERIC_FAILURE };
-    }
-
-    const body = ErrorBody.safeParse(json);
-    const code = body.success ? body.data.error.code : "";
-    switch (code) {
-      case "VALIDATION_ERROR":
-        return {
-          kind: "validation",
-          fields: body.success ? (body.data.error.fields ?? {}) : {},
-        };
-      case "INTAKE_UNAVAILABLE":
-        return { kind: "unavailable" };
-      case "RATE_LIMITED":
-        return { kind: "rate_limited" };
-      default:
-        return {
-          kind: "failed",
-          message: body.success ? body.data.error.message : GENERIC_FAILURE,
-        };
-    }
-  } catch {
-    return { kind: "failed", message: GENERIC_FAILURE };
-  } finally {
-    window.clearTimeout(timer);
-  }
+  const result = await callApi(
+    submitApplicationContract,
+    { body: solicitud },
+    { extraBody: { [HONEYPOT_FIELD]: honeypot } }
+  );
+  return result.success
+    ? { kind: "success", referencia: result.value.referencia }
+    : toOutcome(result.error);
 }
