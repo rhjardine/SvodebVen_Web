@@ -1,0 +1,20 @@
+# Base de datos local opcional (si no usas el PostgreSQL del sistema).
+#   docker compose up -d db
+#   DATABASE_ADMIN_URL=postgresql://postgres:postgres@localhost:5432/postgres pnpm db:provision
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - svodeb-db:/var/lib/postgresql/data
+
+volumes:
+  svodeb-db:

@@ -21,7 +21,9 @@
     "smoke": "tsx scripts/smoke.ts",
     "smtp:check": "node --env-file-if-exists=.env --import tsx scripts/smtp-check.ts",
     "content:audit": "tsx scripts/content-audit.ts",
-    "lighthouse": "pnpm dlx @lhci/cli@0.15.1 autorun"
+    "lighthouse": "pnpm dlx @lhci/cli@0.15.1 autorun",
+    "db:local": "bash scripts/db-local.sh",
+    "db:provision": "bash scripts/db-provision.sh"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
