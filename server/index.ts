@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
+import { purgeExpiredIdempotencyKeys } from "./adapters/postgres/idempotency";
 import { createPool } from "./adapters/postgres/pool";
 import {
   ConsoleLoginLinkMailer,
@@ -54,6 +55,15 @@ function composeAuth(config: AppConfig): AuthModule | null {
   }
   const settings = config.auth;
   const pool = createPool(config.databaseUrl, logger);
+  // Retención de claves de idempotencia (24 h): purga horaria, sin impedir el cierre del proceso.
+  setInterval(
+    () => {
+      void purgeExpiredIdempotencyKeys(pool).then(purged => {
+        if (!purged.success) logger.error("idempotency.purge_failed");
+      });
+    },
+    60 * 60 * 1000
+  ).unref();
   const jwt = createJwtService({
     secret: settings.jwtSecret,
     ...(settings.jwtSecretPrevious

@@ -23,6 +23,11 @@ import {
   type Result,
 } from "../../shared/result";
 import type { Logger } from "../membership/submit-application";
+import {
+  IDEMPOTENCY_HEADER,
+  readIdempotency,
+  type IdempotencyInput,
+} from "./idempotency";
 import { respondError } from "./respond";
 
 /**
@@ -43,6 +48,10 @@ export type HandlerContext = Readonly<{
   identity: Identity | null;
   req: Request;
   cookies: CookieJar;
+  /** Presente solo en rutas `idempotent: true` (clave ya validada y huella de la solicitud). */
+  idempotency: IdempotencyInput | null;
+  /** Cabeceras extra de la respuesta de ÉXITO (p. ej. `Idempotent-Replayed`). */
+  setHeader: (name: string, value: string) => void;
 }>;
 
 export type RouteHandler<C extends RouteContract> = (
@@ -212,13 +221,27 @@ async function serve<C extends RouteContract>(
   // es sólido porque `parseRequest` usó los mismos esquemas que definen `ServerInput<C>`.
   const input = parts.value as unknown as ServerInput<C>;
 
+  let idempotency: IdempotencyInput | null = null;
+  if (contract.idempotent) {
+    const read = readIdempotency(
+      req.get(IDEMPOTENCY_HEADER),
+      `${contract.method} ${contract.path}`,
+      parts.value
+    );
+    if (!read.success) return respondError(res, read.error);
+    idempotency = read.value;
+  }
+
   const cookieOps: CookieOp[] = [];
+  const extraHeaders: [string, string][] = [];
   const outcome = await tryAsync(
     () =>
       handler(input, {
         identity: identity.value,
         req,
         cookies: createCookieJar(cookieOps),
+        idempotency,
+        setHeader: (name, value) => void extraHeaders.push([name, value]),
       }),
     cause => {
       deps.logger.error("http.handler_exception", {
@@ -245,6 +268,7 @@ async function serve<C extends RouteContract>(
     );
   }
 
+  for (const [name, value] of extraHeaders) res.setHeader(name, value);
   res.setHeader("Cache-Control", cacheControl(contract.cache));
   res.status(contract.successStatus).json(payload.data);
 }
