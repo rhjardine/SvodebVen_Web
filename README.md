@@ -17,7 +17,8 @@ pnpm dev       # Front en :3000 (redirige /api a :3001)
 ## Verificación (lo mismo que ejecuta CI)
 
 ```bash
-pnpm verify    # typecheck + pruebas + build
+pnpm verify    # typecheck + lint + pruebas + build
+pnpm db:local  # (opcional) Postgres local para las pruebas de integración
 ```
 
 ## Producción
@@ -36,6 +37,8 @@ Guía completa (Render, Docker, verificación): [`docs/DESPLIEGUE.md`](docs/DESP
 pnpm smoke <url>            # prueba de humo contra un despliegue
 pnpm smtp:check             # verifica credenciales SMTP (no envía correos)
 pnpm content:audit          # contenido institucional pendiente de confirmar
+pnpm db:migrate             # aplica migraciones (DATABASE_MIGRATION_URL)
+pnpm admin:create           # crea una cuenta de personal (DATABASE_URL)
 pnpm lighthouse             # presupuestos de rendimiento y accesibilidad
 ```
 

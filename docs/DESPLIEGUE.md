@@ -4,25 +4,33 @@ Esta guía explica cómo publicar el sitio en producción y cómo comprobar que 
 
 ## 1. Requisitos previos (los decide la directiva)
 
-| Recurso | Para qué | Ejemplo |
-|---|---|---|
-| Dominio | Dirección pública del sitio | `svodeb.org` |
+| Recurso               | Para qué                               | Ejemplo                                                           |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| Dominio               | Dirección pública del sitio            | `svodeb.org`                                                      |
 | Cuenta de correo SMTP | Recibir afiliaciones y enviar el acuse | Google Workspace, Gmail con contraseña de aplicación, Zoho, Brevo |
-| Correo de secretaría | Destino de las solicitudes | `secretaria@svodeb.org` |
-| Hosting con Docker | Ejecutar el contenedor | Render (incluido `render.yaml`), Railway, Fly.io o un VPS |
+| Correo de secretaría  | Destino de las solicitudes             | `secretaria@svodeb.org`                                           |
+| Hosting con Docker    | Ejecutar el contenedor                 | Render (incluido `render.yaml`), Railway, Fly.io o un VPS         |
 
 ## 2. Variables de entorno
 
 Parte de `.env.example`. **Nunca** subas el `.env` real al repositorio.
 
-| Variable | Obligatoria | Descripción |
-|---|---|---|
-| `NODE_ENV` | Sí | `production` |
-| `PORT` | No | Puerto interno (por defecto `3000`) |
-| `TRUST_PROXY_HOPS` | Sí detrás de un proxy | `1` en Render, Railway o Nginx: así el límite de envíos por IP usa la IP real |
-| `PUBLIC_SITE_URL` | Recomendada | URL canónica; activa `sitemap.xml` |
-| `ALLOWED_ORIGINS` | Recomendada | Orígenes que pueden enviar la planilla (p. ej. `https://svodeb.org`) |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `SECRETARIA_EMAIL` | Todas o ninguna | Recepción de afiliaciones |
+| Variable                                                                                               | Obligatoria           | Descripción                                                                   |
+| ------------------------------------------------------------------------------------------------------ | --------------------- | ----------------------------------------------------------------------------- |
+| `NODE_ENV`                                                                                             | Sí                    | `production`                                                                  |
+| `PORT`                                                                                                 | No                    | Puerto interno (por defecto `3000`)                                           |
+| `TRUST_PROXY_HOPS`                                                                                     | Sí detrás de un proxy | `1` en Render, Railway o Nginx: así el límite de envíos por IP usa la IP real |
+| `PUBLIC_SITE_URL`                                                                                      | Recomendada           | URL canónica; activa `sitemap.xml`                                            |
+| `ALLOWED_ORIGINS`                                                                                      | Recomendada           | Orígenes que pueden enviar la planilla (p. ej. `https://svodeb.org`)          |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `SECRETARIA_EMAIL` | Todas o ninguna       | Recepción de afiliaciones                                                     |
+
+| `DATABASE_URL` | Para expedientes y acceso | Conexión del rol `svodeb_app` (sujeto a RLS). Con ella el expediente se **persiste** y el correo solo notifica |
+| `DATABASE_MIGRATION_URL` | Solo al migrar | Conexión del rol dueño `svodeb_owner`; solo la usa `pnpm db:migrate` |
+| `JWT_SECRET` | Con `DATABASE_URL` | ≥ 32 caracteres (`openssl rand -base64 48`) |
+| `JWT_SECRET_PREVIOUS` | Solo en rotación | Secreto anterior: se acepta únicamente para verificar |
+| `ACCESS_TTL_SECONDS`, `REFRESH_TTL_SECONDS`, `LOGIN_LINK_TTL_SECONDS` | No | 900 / 2592000 / 900 |
+
+Con `DATABASE_URL` en producción el servidor **se niega a arrancar** si falta `JWT_SECRET`, `PUBLIC_SITE_URL` o SMTP (sin correo nadie podría iniciar sesión).
 
 Sin SMTP, el sitio funciona igual: la planilla le ofrece al postulante un correo ya redactado y la API responde `503`. Nunca se simula un envío exitoso. Si configuras SMTP a medias, el servidor **se niega a arrancar** y lo indica en el log.
 
@@ -43,11 +51,22 @@ docker run -d --name svodeb-web --restart unless-stopped \
 
 Pon delante un proxy con HTTPS (Caddy, Nginx o Traefik) y define `TRUST_PROXY_HOPS=1`. La imagen corre como usuario sin privilegios (`node`) e incluye un healthcheck en `/api/health`.
 
+## 4b. Base de datos, migraciones y cuentas de personal
+
+1. Crea la base (Render Postgres) y los roles con `db/provision.sql` (`pnpm db:provision`). Si el plan no permite `CREATE ROLE`, el plan B es un único rol con `FORCE ROW LEVEL SECURITY`.
+2. Aplica migraciones **antes** de cada despliegue: `DATABASE_MIGRATION_URL=… pnpm db:migrate`. Es idempotente, usa un bloqueo consultivo y compara checksums: **editar una migración ya aplicada es un error**; crea una nueva.
+3. Crea la primera cuenta: `DATABASE_URL=… pnpm admin:create correo@svodeb.org "Nombres" "Apellidos" admin`. Roles: `admin`, `secretaria`, `tesoreria`.
+4. Inicia sesión en `/acceso` (recibirás el enlace por correo) y revisa expedientes en `/secretaria`.
+
+**Rotación de `JWT_SECRET`:** (1) pon el secreto actual en `JWT_SECRET_PREVIOUS` y uno nuevo en `JWT_SECRET`; (2) despliega: las sesiones vigentes siguen válidas y las nuevas se firman con el secreto nuevo; (3) pasados 15 min (vida del token de acceso) retira `JWT_SECRET_PREVIOUS`. Si se filtró el secreto, omite el paso (1) para invalidar todo de inmediato.
+
+**Copias de seguridad:** los expedientes contienen datos personales. Activa copias automáticas del proveedor y define el plazo de retención con asesoría legal (pendiente).
+
 ## 5. Verificación después de cada despliegue
 
 ```bash
 pnpm smtp:check                     # credenciales SMTP (no envía correos)
-pnpm smoke https://svodeb.org       # 7 verificaciones: salud, cabeceras, 404, SEO, caché, API
+pnpm smoke https://svodeb.org       # 8 verificaciones: salud, cabeceras, 404, SEO, caché, API, sesión
 ```
 
 Luego, una prueba manual completa:

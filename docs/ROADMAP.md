@@ -6,14 +6,14 @@
 
 Se importó sin cambios el ZIP entregado (commit de línea base) y se auditó contra el informe de Manus.
 
-| Afirmación del informe Manus | Estado real en el ZIP |
-|---|---|
-| Enlace "Saltar al contenido", foco visible, menú con Escape | **No presente** |
-| `robots.txt`, sitemap, favicon, manifest | **No presentes** |
-| 404 en español | **En inglés** ("Page Not Found") |
-| Directorio sin perfiles ficticios | **Con fichas ficticias**, y además cargos inventados (p. ej. "Ariana · Presidencia") |
-| Formulario marcado como prototipo | Mostraba "Solicitud preparada" **sin enviar nada** |
-| Hero corregido para producción | La imagen dependía de `/manus-storage/…`, un proxy que **solo existe en el entorno de Manus** |
+| Afirmación del informe Manus                                | Estado real en el ZIP                                                                         |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Enlace "Saltar al contenido", foco visible, menú con Escape | **No presente**                                                                               |
+| `robots.txt`, sitemap, favicon, manifest                    | **No presentes**                                                                              |
+| 404 en español                                              | **En inglés** ("Page Not Found")                                                              |
+| Directorio sin perfiles ficticios                           | **Con fichas ficticias**, y además cargos inventados (p. ej. "Ariana · Presidencia")          |
+| Formulario marcado como prototipo                           | Mostraba "Solicitud preparada" **sin enviar nada**                                            |
+| Hero corregido para producción                              | La imagen dependía de `/manus-storage/…`, un proxy que **solo existe en el entorno de Manus** |
 
 Otros hallazgos:
 
@@ -85,18 +85,18 @@ Otros hallazgos:
 
 ## 3. Preguntas abiertas (bloquean la publicación)
 
-| # | Pregunta | Dónde impacta |
-|---|---|---|
-| 1 | **Vector oficial del logotipo** (SVG, AI o PDF) | Cabecera, pie, favicon, imagen OG. Hoy se usa un logotipo tipográfico y una ilustración inspirada en el isotipo |
-| 2 | ¿El RIF **J-296571635** y el correo **secretaria@svodeb.org** son correctos y están activos? (vienen del prototipo, sin verificar) | Pie, avisos, SMTP |
-| 3 | Nombre completo y web de **ALODYB** | Badge del hero, pie |
-| 4 | Categorías de membresía y requisitos **según los Estatutos**: ¿Activo, Asociado y Estudiante? ¿Exigen número de COV o MPPS? | Esquema de afiliación |
-| 5 | Junta Directiva vigente (nombres, cargos, período) | Sección Institución |
-| 6 | Hitos históricos (año de fundación, primeras jornadas) | Reseña histórica |
-| 7 | Fecha y sede de la Asamblea 2026; próximos eventos confirmados | Eventos |
-| 8 | Dominio definitivo y hosting | `PUBLIC_SITE_URL`, CSP, SMTP |
-| 9 | Cuenta de correo para el envío (Gmail con contraseña de aplicación, Google Workspace o proveedor transaccional) | Recepción de afiliaciones |
-| 10 | Revisión legal del Aviso de privacidad (hoy es un borrador) | `/privacidad` |
+| #   | Pregunta                                                                                                                           | Dónde impacta                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1   | **Vector oficial del logotipo** (SVG, AI o PDF)                                                                                    | Cabecera, pie, favicon, imagen OG. Hoy se usa un logotipo tipográfico y una ilustración inspirada en el isotipo |
+| 2   | ¿El RIF **J-296571635** y el correo **secretaria@svodeb.org** son correctos y están activos? (vienen del prototipo, sin verificar) | Pie, avisos, SMTP                                                                                               |
+| 3   | Nombre completo y web de **ALODYB**                                                                                                | Badge del hero, pie                                                                                             |
+| 4   | Categorías de membresía y requisitos **según los Estatutos**: ¿Activo, Asociado y Estudiante? ¿Exigen número de COV o MPPS?        | Esquema de afiliación                                                                                           |
+| 5   | Junta Directiva vigente (nombres, cargos, período)                                                                                 | Sección Institución                                                                                             |
+| 6   | Hitos históricos (año de fundación, primeras jornadas)                                                                             | Reseña histórica                                                                                                |
+| 7   | Fecha y sede de la Asamblea 2026; próximos eventos confirmados                                                                     | Eventos                                                                                                         |
+| 8   | Dominio definitivo y hosting                                                                                                       | `PUBLIC_SITE_URL`, CSP, SMTP                                                                                    |
+| 9   | Cuenta de correo para el envío (Gmail con contraseña de aplicación, Google Workspace o proveedor transaccional)                    | Recepción de afiliaciones                                                                                       |
+| 10  | Revisión legal del Aviso de privacidad (hoy es un borrador)                                                                        | `/privacidad`                                                                                                   |
 
 ## 4. Plan de sprints
 
@@ -109,14 +109,14 @@ Entregado:
 - **Zod sin JIT** en el navegador (`jitless`): compatible con la CSP sin `'unsafe-eval'`.
 - **Resultado medido con Lighthouse** (móvil, 4G lenta simulada):
 
-  | Métrica | Antes | Después |
-  |---|---|---|
-  | LCP | 4,1 s | **1,9 s** |
-  | FCP | 3,6 s | **1,6 s** |
-  | Rendimiento | 88 | **99** |
-  | Accesibilidad | 100 | **100** |
-  | Buenas prácticas | 93 | **100** |
-  | SEO | 100 | **100** |
+  | Métrica          | Antes | Después   |
+  | ---------------- | ----- | --------- |
+  | LCP              | 4,1 s | **1,9 s** |
+  | FCP              | 3,6 s | **1,6 s** |
+  | Rendimiento      | 88    | **99**    |
+  | Accesibilidad    | 100   | **100**   |
+  | Buenas prácticas | 93    | **100**   |
+  | SEO              | 100   | **100**   |
 
 - **Contenedor Docker** multi-etapa, usuario sin privilegios y healthcheck; blueprint `render.yaml` para Render.
 - **Scripts de operación:**
@@ -135,13 +135,23 @@ Pendiente (depende de la directiva, ver §3):
 - Elegir hosting y dominio, configurar SMTP y ejecutar la verificación de `docs/DESPLIEGUE.md` §5.
 - Validar la imagen Docker con el pipeline de prerender en el primer despliegue. En este entorno, Docker Hub limitó las descargas (429) y no se pudo reconstruir la imagen final.
 
-### Sprint 3 · Gestión de expedientes (3–4 semanas)
+### Sprint 3 · Identidad, datos y expedientes ✅ (entregado)
 
-- Decisión de persistencia (ver §5). Recomendación: PostgreSQL con RLS.
-- Nuevo adaptador `PostgresApplicationIntake` detrás del mismo puerto `ApplicationIntake`. El caso de uso no cambia.
-- Máquina de estados del expediente: `RECIBIDA → EN_REVISION → REQUIERE_INFORMACION → APROBADA | RECHAZADA`, con bitácora inmutable (solo inserciones).
-- Panel de secretaría con autenticación y roles (secretaría, directiva).
-- Carga de documentos: bucket privado, URL firmadas, validación del tipo real y límite de tamaño.
+- **Fundaciones:** `Result<T, E>` sin `throw` en la lógica de negocio (ESLint lo hace cumplir), contratos Zod de ruta compartidos por servidor y cliente, taxonomía única de errores.
+- **Datos:** PostgreSQL con RLS activada y forzada; dos roles (`svodeb_owner` para DDL, `svodeb_app` sin BYPASSRLS); "proxy de identidad" con `set_config(..., true)` dentro de una transacción; tablas de bitácora de solo inserción. Probado contra Postgres real, incluida una prueba de mutación de políticas.
+- **Sesión:** enlace mágico por correo (un solo uso, 15 min, token en el fragmento y canje por POST), JWT HS256 de 15 min en cookie `HttpOnly; Secure; SameSite=Strict`, refresh opaco rotatorio con detección de reutilización (revoca la familia), CSRF por cabecera, límites por IP y por correo, rotación de secreto con `kid`.
+- **Idempotencia:** `Idempotency-Key` en la misma transacción que la operación; concurrentes producen un solo efecto; otra carga útil con la misma clave → 422; retención de 24 h. Aplicada a la afiliación.
+- **Expedientes:** persistencia con notificación por SMTP posterior (si el correo falla no se pierde nada), máquina de estados pura, panel `/secretaria` (noindex), transición con `FOR UPDATE`, auditoría y alta del miembro al aprobar.
+- **Cuentas de personal:** solo por CLI (`pnpm admin:create`); ninguna pantalla escala privilegios.
+
+**Límites conocidos (honestos):**
+
+- RLS protege de errores de lógica (IDOR, `WHERE` olvidado); no protege ante una inyección SQL total (por eso solo hay consultas parametrizadas y el rol de la app no tiene DDL).
+- El rol `system` (flujos de autenticación) es de confianza: lo fija la aplicación, no el cliente.
+- El JWT de acceso no se puede revocar: un cambio de rol o una suspensión tardan hasta 15 min en surtir efecto en la API (el refresh sí relee el rol y el estado).
+- Si se pierde la respuesta de un refresh, la reutilización del token anterior se trata como robo y obliga a iniciar sesión de nuevo (preferimos fallar cerrado).
+- El limitador de tasa es en memoria: con varias réplicas hay que moverlo a Redis/Postgres.
+- Carga de documentos (bucket privado, URLs firmadas) pasó al sprint 5.
 
 ### Sprint 4 · CMS y directorio (3 semanas)
 
@@ -162,22 +172,22 @@ Pendiente (depende de la directiva, ver §3):
 
 ## 5. Decisiones de arquitectura
 
-| Decisión | Elección | Motivo | Alternativa |
-|---|---|---|---|
-| Stack front | Se mantiene Vite + React | Funciona, es ligero y migrarlo no aporta valor todavía | Next.js o Astro si se necesita SSR/SSG para SEO de perfiles (sprint 4) |
-| Recepción | SMTP detrás del puerto `ApplicationIntake` | Coste cero y operable por secretaría desde el día 1 | Postgres (sprint 3) sin tocar el dominio |
-| Validación | Zod compartido cliente/servidor | Una sola fuente de verdad | — |
-| Rate limit | En memoria, por IP | Una sola instancia | Redis o Postgres con varias réplicas |
-| Persistencia futura | PostgreSQL + RLS | Aislamiento por rol a nivel de base de datos | Payload CMS (control de acceso en la app, con panel incluido) |
+| Decisión            | Elección                                   | Motivo                                                 | Alternativa                                                            |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Stack front         | Se mantiene Vite + React                   | Funciona, es ligero y migrarlo no aporta valor todavía | Next.js o Astro si se necesita SSR/SSG para SEO de perfiles (sprint 4) |
+| Recepción           | SMTP detrás del puerto `ApplicationIntake` | Coste cero y operable por secretaría desde el día 1    | Postgres (sprint 3) sin tocar el dominio                               |
+| Validación          | Zod compartido cliente/servidor            | Una sola fuente de verdad                              | —                                                                      |
+| Rate limit          | En memoria, por IP                         | Una sola instancia                                     | Redis o Postgres con varias réplicas                                   |
+| Persistencia futura | PostgreSQL + RLS                           | Aislamiento por rol a nivel de base de datos           | Payload CMS (control de acceso en la app, con panel incluido)          |
 
 ## 6. Orquestación por especialidad
 
 Cada sprint se reparte en frentes con criterios de aceptación verificables. Todo cambio entra por PR con CI en verde.
 
-| Frente | Responsabilidad | Criterio de salida |
-|---|---|---|
-| Contenido / Marca | Datos oficiales, logotipo, textos | Cero `PENDIENTE` en `content/site.ts` |
-| Frontend / A11y | Secciones, estados, WCAG 2.2 AA | axe sin violaciones; navegación completa con teclado |
-| Backend / Seguridad | Casos de uso, adaptadores, cabeceras | Pruebas de integración de la API; audit limpio |
-| Plataforma | Deploy, dominio, SMTP, monitoreo | `/api/health` monitoreado; alertas si falla la entrega de correo |
-| QA | Pruebas de extremo a extremo, humo en producción | Flujo de afiliación real verificado |
+| Frente              | Responsabilidad                                  | Criterio de salida                                               |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------- |
+| Contenido / Marca   | Datos oficiales, logotipo, textos                | Cero `PENDIENTE` en `content/site.ts`                            |
+| Frontend / A11y     | Secciones, estados, WCAG 2.2 AA                  | axe sin violaciones; navegación completa con teclado             |
+| Backend / Seguridad | Casos de uso, adaptadores, cabeceras             | Pruebas de integración de la API; audit limpio                   |
+| Plataforma          | Deploy, dominio, SMTP, monitoreo                 | `/api/health` monitoreado; alertas si falla la entrega de correo |
+| QA                  | Pruebas de extremo a extremo, humo en producción | Flujo de afiliación real verificado                              |

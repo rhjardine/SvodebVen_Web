@@ -35,6 +35,26 @@ const checks: readonly Check[] = [
     },
   },
   {
+    nombre: "Sesión: sin cookie no hay identidad y la respuesta no se cachea",
+    run: async base => {
+      const res = await fetch(new URL("/api/v1/auth/session", base));
+      expect(res.status === 200, `estado ${res.status}`);
+      const body: unknown = await res.json();
+      expect(
+        typeof body === "object" &&
+          body !== null &&
+          "member" in body &&
+          body.member === null,
+        "se esperaba { member: null }"
+      );
+      expect(
+        res.headers.get("cache-control") === "no-store",
+        "la sesión debe ser no-store"
+      );
+      return "200 · member null · no-store";
+    },
+  },
+  {
     nombre: "Página principal y cabeceras de seguridad",
     run: async base => {
       const res = await fetch(base);
