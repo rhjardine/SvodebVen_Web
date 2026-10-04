@@ -23,10 +23,15 @@ export type SubmitApplicationError =
 
 // ─── Puertos (implementados en infraestructura) ─────────────────────────────
 
+/** Fallo de entrega ya traducido por el adaptador (nunca una excepción). */
+export type DeliveryFailure = Readonly<{ reason: string }>;
+
 /** Destino de las solicitudes: correo de secretaría hoy, base de datos mañana. */
 export interface ApplicationIntake {
   readonly isConfigured: boolean;
-  deliver(application: MembershipApplication): Promise<void>;
+  deliver(
+    application: MembershipApplication
+  ): Promise<Result<void, DeliveryFailure>>;
 }
 
 export interface Clock {
@@ -95,16 +100,14 @@ export function makeSubmitApplication(deps: SubmitApplicationDeps) {
       datos: Object.freeze({ ...parsed.data }),
     });
 
-    try {
-      await deps.intake.deliver(application);
-    } catch (cause) {
-      const reason = cause instanceof Error ? cause.message : "unknown";
+    const delivery = await deps.intake.deliver(application);
+    if (!delivery.success) {
       // Solo se registra la referencia: nunca datos personales en los logs.
       deps.logger.error("membership.delivery_failed", {
         referencia: application.referencia,
-        reason,
+        reason: delivery.error.reason,
       });
-      return err({ kind: "DELIVERY_FAILED", cause: reason });
+      return err({ kind: "DELIVERY_FAILED", cause: delivery.error.reason });
     }
 
     deps.logger.info("membership.application_received", {

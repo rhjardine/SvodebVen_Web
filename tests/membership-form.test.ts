@@ -15,8 +15,8 @@ describe("planilla de afiliación (cliente)", () => {
   it("reporta todos los campos pendientes aunque falte la categoría", () => {
     const { input } = formDataToInput(formData([["nombres", "Ana"]]));
     const result = validateForm(input);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
+    expect(result.success).toBe(false);
+    if (result.success) return;
     expect(result.error.categoria).toBeDefined();
     expect(result.error.email).toBeDefined();
     expect(result.error.nombres).toBeUndefined();

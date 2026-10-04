@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { exhaustive } from "../../shared/exhaustive";
 import {
   HONEYPOT_FIELD,
   type ApiErrorBody,
@@ -50,8 +51,14 @@ function sendError(res: Response, error: SubmitApplicationError): void {
       return;
     }
     default: {
-      const exhaustive: never = error;
-      throw new Error(`Error no manejado: ${JSON.stringify(exhaustive)}`);
+      exhaustive(error);
+      const body: ApiErrorBody = {
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Ocurrió un error inesperado.",
+        },
+      };
+      res.status(500).json(body);
     }
   }
 }
@@ -112,7 +119,7 @@ export function membershipRouter(
     }
 
     const result = await submitApplication(payload);
-    if (!result.ok) {
+    if (!result.success) {
       sendError(res, result.error);
       return;
     }

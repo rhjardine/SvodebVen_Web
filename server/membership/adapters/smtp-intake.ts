@@ -3,8 +3,16 @@ import {
   AREA_LABEL,
   CATEGORIA_LABEL,
 } from "../../../shared/membership/catalog";
+import {
+  describeCause,
+  err,
+  ok,
+  tryAsync,
+  type Result,
+} from "../../../shared/result";
 import type {
   ApplicationIntake,
+  DeliveryFailure,
   Logger,
   MembershipApplication,
 } from "../submit-application";
@@ -94,37 +102,46 @@ export class SmtpApplicationIntake implements ApplicationIntake {
     });
   }
 
-  async deliver(application: MembershipApplication): Promise<void> {
+  async deliver(
+    application: MembershipApplication
+  ): Promise<Result<void, DeliveryFailure>> {
     // 1) Notificación a secretaría: si falla, la solicitud NO se considera recibida.
-    await this.transporter.sendMail({
-      from: this.config.from,
-      to: this.config.secretariaEmail,
-      replyTo: application.datos.email,
-      subject: `Solicitud de afiliación ${application.referencia} · ${CATEGORIA_LABEL[application.datos.categoria]}`,
-      text: renderSecretariaEmail(application),
-    });
+    const toSecretaria = await tryAsync(
+      () =>
+        this.transporter.sendMail({
+          from: this.config.from,
+          to: this.config.secretariaEmail,
+          replyTo: application.datos.email,
+          subject: `Solicitud de afiliación ${application.referencia} · ${CATEGORIA_LABEL[application.datos.categoria]}`,
+          text: renderSecretariaEmail(application),
+        }),
+      cause => ({ reason: describeCause(cause) })
+    );
+    if (!toSecretaria.success) return toSecretaria;
 
     // 2) Acuse al postulante: mejor esfuerzo; un fallo aquí no invalida la recepción.
-    try {
-      await this.transporter.sendMail({
-        from: this.config.from,
-        to: application.datos.email,
-        subject: `Recibimos tu solicitud · ${application.referencia}`,
-        text: renderAcuseEmail(application),
-      });
-    } catch (cause) {
+    const ack = await tryAsync(
+      () =>
+        this.transporter.sendMail({
+          from: this.config.from,
+          to: application.datos.email,
+          subject: `Recibimos tu solicitud · ${application.referencia}`,
+          text: renderAcuseEmail(application),
+        }),
+      describeCause
+    );
+    if (!ack.success) {
       this.logger.error("membership.ack_failed", {
         referencia: application.referencia,
-        reason: cause instanceof Error ? cause.message : "unknown",
+        reason: ack.error,
       });
     }
+    return ok(undefined);
   }
 }
 
 /** Adaptador explícito cuando no hay canal configurado: la API responde 503 con honestidad. */
 export const unconfiguredIntake: ApplicationIntake = Object.freeze({
   isConfigured: false,
-  deliver: async () => {
-    throw new Error("Intake not configured");
-  },
+  deliver: () => Promise.resolve(err({ reason: "Intake not configured" })),
 });

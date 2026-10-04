@@ -50,7 +50,7 @@ const bodyParserErrors: ErrorRequestHandler = (
 ) => {
   const type =
     typeof error === "object" && error !== null && "type" in error
-      ? String((error as { type: unknown }).type)
+      ? String(error.type)
       : "";
   if (type === "entity.too.large") {
     const body: ApiErrorBody = {

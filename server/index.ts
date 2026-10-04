@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
-import { loadConfig } from "./config";
+import { describeConfigError, loadConfig, type AppConfig } from "./config";
 import {
   SmtpApplicationIntake,
   unconfiguredIntake,
@@ -35,8 +35,7 @@ const logger: Logger = {
     ),
 };
 
-function main(): void {
-  const config = loadConfig(process.env);
+function main(config: AppConfig): void {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
   const intake = config.smtp
@@ -78,9 +77,10 @@ function main(): void {
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
+// Raíz de composición: único lugar que decide terminar el proceso ante una configuración inválida.
+const config = loadConfig(process.env);
+if (!config.success) {
+  console.error(describeConfigError(config.error));
   process.exit(1);
 }
+main(config.value);

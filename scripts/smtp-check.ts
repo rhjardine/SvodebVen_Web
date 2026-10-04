@@ -3,11 +3,16 @@
  * Uso: pnpm smtp:check   (lee las variables SMTP_* del entorno o de .env)
  */
 import nodemailer from "nodemailer";
-import { ConfigError, loadConfig } from "../server/config";
+import { describeConfigError, loadConfig } from "../server/config";
 
 async function main(): Promise<void> {
   try {
-    const { smtp } = loadConfig(process.env);
+    const config = loadConfig(process.env);
+    if (!config.success) {
+      console.error(`✘ ${describeConfigError(config.error)}`);
+      process.exit(1);
+    }
+    const { smtp } = config.value;
     if (!smtp) {
       console.error(
         "✘ SMTP no configurado: define todas las variables SMTP_*, MAIL_FROM y SECRETARIA_EMAIL."
@@ -26,10 +31,7 @@ async function main(): Promise<void> {
     );
     console.log(`  Las solicitudes llegarán a: ${smtp.secretariaEmail}`);
   } catch (error) {
-    const detalle =
-      error instanceof ConfigError || error instanceof Error
-        ? error.message
-        : String(error);
+    const detalle = error instanceof Error ? error.message : String(error);
     console.error(`✘ Falló la verificación SMTP: ${detalle}`);
     process.exit(1);
   }

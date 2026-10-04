@@ -7,9 +7,18 @@ import { AREAS_DE_INTERES, ENTIDADES_FEDERALES } from "./catalog";
  * servidor (frontera de confianza). Nunca confiar solo en la validación del cliente.
  */
 
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
-const CONTROL_CHARS_EXCEPT_NEWLINES =
-  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+/** Caracteres de control (incluye inyección de cabeceras con \r\n); opcionalmente tolera tab y saltos de línea. */
+function hasControlChars(value: string, allowWhitespace: boolean): boolean {
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0;
+    if (code === 0x7f) return true;
+    if (code <= 0x1f) {
+      const isWhitespace = code === 0x09 || code === 0x0a || code === 0x0d;
+      if (!(allowWhitespace && isWhitespace)) return true;
+    }
+  }
+  return false;
+}
 
 type TextLabels = Readonly<{ campo: string; requerido: string }>;
 
@@ -20,7 +29,7 @@ const singleLine = (min: number, max: number, labels: TextLabels) =>
     .min(1, { error: labels.requerido })
     .min(min, { error: `${labels.campo}: mínimo ${min} caracteres.` })
     .max(max, { error: `${labels.campo}: máximo ${max} caracteres.` })
-    .refine(value => !CONTROL_CHARS.test(value), {
+    .refine(value => !hasControlChars(value, false), {
       error: `${labels.campo}: contiene caracteres no permitidos.`,
     });
 
@@ -92,7 +101,7 @@ const base = z.object({
     .string()
     .trim()
     .max(1000, { error: "Máximo 1000 caracteres." })
-    .refine(value => !CONTROL_CHARS_EXCEPT_NEWLINES.test(value), {
+    .refine(value => !hasControlChars(value, true), {
       error: "El texto contiene caracteres no permitidos.",
     })
     .optional()

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { err, ok, type Result } from "../shared/result";
 import type { SmtpIntakeConfig } from "./membership/adapters/smtp-intake";
 
 const booleanFromEnv = z
@@ -34,17 +35,31 @@ export type AppConfig = Readonly<{
   smtp: SmtpIntakeConfig | null;
 }>;
 
-export class ConfigError extends Error {
-  override readonly name = "ConfigError";
+export type ConfigError =
+  | Readonly<{ kind: "INVALID_ENV"; issues: readonly string[] }>
+  | Readonly<{ kind: "SMTP_INCOMPLETE" }>;
+
+export function describeConfigError(error: ConfigError): string {
+  switch (error.kind) {
+    case "INVALID_ENV":
+      return `Configuración inválida: ${error.issues.join("; ")}`;
+    case "SMTP_INCOMPLETE":
+      return "SMTP parcialmente configurado: define SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM y SECRETARIA_EMAIL.";
+  }
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
+/** Devuelve `Result`: quien arranca el proceso (composición) decide si registrar y salir. */
+export function loadConfig(
+  env: NodeJS.ProcessEnv
+): Result<AppConfig, ConfigError> {
   const parsed = EnvSchema.safeParse(env);
   if (!parsed.success) {
-    const detail = parsed.error.issues
-      .map(issue => `${issue.path.join(".")}: ${issue.message}`)
-      .join("; ");
-    throw new ConfigError(`Configuración inválida: ${detail}`);
+    return err({
+      kind: "INVALID_ENV",
+      issues: parsed.error.issues.map(
+        issue => `${issue.path.join(".")}: ${issue.message}`
+      ),
+    });
   }
   const e = parsed.data;
 
@@ -58,9 +73,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
   ];
   const smtpProvided = smtpFields.filter(value => value !== undefined).length;
   if (smtpProvided > 0 && smtpProvided < smtpFields.length) {
-    throw new ConfigError(
-      "SMTP parcialmente configurado: define SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM y SECRETARIA_EMAIL."
-    );
+    return err({ kind: "SMTP_INCOMPLETE" });
   }
 
   const smtp: SmtpIntakeConfig | null =
@@ -81,16 +94,18 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
         })
       : null;
 
-  return Object.freeze({
-    env: e.NODE_ENV,
-    port: e.PORT,
-    trustProxyHops: e.TRUST_PROXY_HOPS,
-    allowedOrigins: Object.freeze(
-      e.ALLOWED_ORIGINS.split(",")
-        .map(origin => origin.trim())
-        .filter(Boolean)
-    ),
-    publicSiteUrl: e.PUBLIC_SITE_URL,
-    smtp,
-  });
+  return ok(
+    Object.freeze({
+      env: e.NODE_ENV,
+      port: e.PORT,
+      trustProxyHops: e.TRUST_PROXY_HOPS,
+      allowedOrigins: Object.freeze(
+        e.ALLOWED_ORIGINS.split(",")
+          .map(origin => origin.trim())
+          .filter(Boolean)
+      ),
+      publicSiteUrl: e.PUBLIC_SITE_URL,
+      smtp,
+    })
+  );
 }

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { ORGANIZACION } from "@/content/site";
 import { cn } from "@/lib/utils";
+import { exhaustive } from "@shared/exhaustive";
 import { HONEYPOT_FIELD } from "@shared/membership/api";
 import {
   AREA_LABEL,
@@ -39,6 +40,7 @@ type Status =
   | Readonly<{ kind: "error"; message: string }>;
 
 const MOTIVACION_MAX = 1000;
+const GENERIC_ERROR = "Ocurrió un error inesperado. Inténtalo de nuevo.";
 const SEMESTRES = Array.from({ length: 12 }, (_, index) => index + 1);
 
 type ControlProps = Readonly<{
@@ -137,7 +139,7 @@ export function MembershipForm() {
       new FormData(event.currentTarget)
     );
     const parsed = validateForm(input);
-    if (!parsed.ok) {
+    if (!parsed.success) {
       setErrors(parsed.error);
       setFocusToken(token => token + 1);
       return;
@@ -181,10 +183,10 @@ export function MembershipForm() {
       case "failed":
         setStatus({ kind: "error", message: outcome.message });
         return;
-      default: {
-        const exhaustive: never = outcome;
-        throw new Error(`Resultado no manejado: ${JSON.stringify(exhaustive)}`);
-      }
+      default:
+        // Inalcanzable: `tsc` falla aquí si aparece una variante sin manejar.
+        exhaustive(outcome);
+        setStatus({ kind: "error", message: GENERIC_ERROR });
     }
   }
 

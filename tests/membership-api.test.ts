@@ -5,11 +5,13 @@ import { createApp } from "../server/app";
 import {
   makeSubmitApplication,
   type ApplicationIntake,
+  type DeliveryFailure,
   type Logger,
   type MembershipApplication,
 } from "../server/membership/submit-application";
 import { unconfiguredIntake } from "../server/membership/adapters/smtp-intake";
 import { HONEYPOT_FIELD, MEMBERSHIP_ENDPOINT } from "../shared/membership/api";
+import { err, ok, type Result } from "../shared/result";
 import { solicitudValida } from "./fixtures";
 
 const silentLogger: Logger = { info: () => undefined, error: () => undefined };
@@ -18,9 +20,14 @@ class InMemoryIntake implements ApplicationIntake {
   readonly isConfigured = true;
   readonly received: MembershipApplication[] = [];
   constructor(private readonly failWith?: Error) {}
-  async deliver(application: MembershipApplication): Promise<void> {
-    if (this.failWith) throw this.failWith;
+  deliver(
+    application: MembershipApplication
+  ): Promise<Result<void, DeliveryFailure>> {
+    if (this.failWith) {
+      return Promise.resolve(err({ reason: this.failWith.message }));
+    }
     this.received.push(application);
+    return Promise.resolve(ok(undefined));
   }
 }
 

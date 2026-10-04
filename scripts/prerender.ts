@@ -17,7 +17,7 @@ const PUBLIC_DIR = path.join(ROOT, "dist/public");
 const SSR_ENTRY = path.join(ROOT, "dist/ssr/entry-server.js");
 const ROOT_PLACEHOLDER = '<div id="root"></div>';
 
-type RenderFn = (path: string) => Promise<string>;
+type RenderFn = (path: string) => string;
 
 class PrerenderError extends Error {
   override readonly name = "PrerenderError";
@@ -85,7 +85,7 @@ async function main(): Promise<void> {
   const preloads = fontPreloads();
 
   for (const route of [...PRERENDERED_ROUTES, NOT_FOUND_PAGE]) {
-    const html = await render(route.path);
+    const html = render(route.path);
     if (html.length < 200)
       throw new PrerenderError(`HTML vacío para ${route.path}`);
     writeFileSync(
