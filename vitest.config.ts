@@ -11,5 +11,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    // Las pruebas con base de datos comparten una BD: se ejecutan una a una.
+    fileParallelism: false,
   },
 });

@@ -17,6 +17,8 @@ const EnvSchema = z.object({
   /** Orígenes permitidos para POST, separados por coma. Vacío = no se valida Origin. */
   ALLOWED_ORIGINS: z.string().optional().default(""),
   PUBLIC_SITE_URL: z.url().optional(),
+  /** Conexión del rol de la aplicación (svodeb_app, sujeto a RLS). Sin ella no hay datos persistentes. */
+  DATABASE_URL: z.url().optional(),
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
   SMTP_SECURE: booleanFromEnv,
@@ -32,6 +34,7 @@ export type AppConfig = Readonly<{
   trustProxyHops: number;
   allowedOrigins: readonly string[];
   publicSiteUrl: string | undefined;
+  databaseUrl: string | undefined;
   smtp: SmtpIntakeConfig | null;
 }>;
 
@@ -105,6 +108,7 @@ export function loadConfig(
           .filter(Boolean)
       ),
       publicSiteUrl: e.PUBLIC_SITE_URL,
+      databaseUrl: e.DATABASE_URL,
       smtp,
     })
   );
