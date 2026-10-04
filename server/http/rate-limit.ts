@@ -8,6 +8,8 @@ export type RateLimitOptions = Readonly<{
   now?: () => number;
   /** Clave de agrupación; por defecto la IP. Útil para limitar por correo, etc. */
   keyOf?: (req: Request) => string;
+  /** Tope de claves en memoria (defensa ante claves inventadas, p. ej. correos). Por defecto 20 000. */
+  maxKeys?: number;
 }>;
 
 type Bucket = { count: number; resetAt: number };
@@ -35,6 +37,11 @@ export function rateLimit(options: RateLimitOptions): RequestHandler {
     const bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= current) {
+      if (!bucket && buckets.size >= (options.maxKeys ?? 20_000)) {
+        // Memoria acotada: se descarta la clave más antigua (el Map conserva el orden de inserción).
+        const oldest = buckets.keys().next();
+        if (!oldest.done) buckets.delete(oldest.value);
+      }
       buckets.set(key, { count: 1, resetAt: current + options.windowMs });
       next();
       return;

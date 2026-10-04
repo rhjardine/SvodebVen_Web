@@ -62,11 +62,15 @@ Pon delante un proxy con HTTPS (Caddy, Nginx o Traefik) y define `TRUST_PROXY_HO
 
 **Copias de seguridad:** los expedientes contienen datos personales. Activa copias automáticas del proveedor y define el plazo de retención con asesoría legal (pendiente).
 
+### Directorio y Cloudflare
+
+Cloudflare cachea por extensión de archivo: **no cachea el JSON** de `/api/v1/directory` por defecto. Crea una _Cache Rule_: si la ruta empieza por `/api/v1/directory`, "Eligible for cache" y "Respect origin TTL" (el servidor ya envía `s-maxage=60`). No cachees nada bajo `/api/v1/auth`, `/api/v1/members` ni `/api/v1/admin` (son `no-store`). Si el sitio va detrás de Cloudflare, no confíes en `CF-Connecting-IP` sin verificar que la petición viene de Cloudflare, o el límite por IP se podrá evadir. Ajusta `TRUST_PROXY_HOPS` al número real de proxies.
+
 ## 5. Verificación después de cada despliegue
 
 ```bash
 pnpm smtp:check                     # credenciales SMTP (no envía correos)
-pnpm smoke https://svodeb.org       # 8 verificaciones: salud, cabeceras, 404, SEO, caché, API, sesión
+pnpm smoke https://svodeb.org       # 9 verificaciones: salud, cabeceras, 404, SEO, caché, API, sesión, directorio
 ```
 
 Luego, una prueba manual completa:

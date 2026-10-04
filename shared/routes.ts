@@ -30,6 +30,12 @@ export const PRERENDERED_ROUTES: readonly PrerenderedRoute[] = Object.freeze([
     indexable: false,
   },
   {
+    path: "/mi-ficha",
+    file: "mi-ficha.html",
+    title: `Mi ficha del directorio · ${SITE_NAME}`,
+    indexable: false,
+  },
+  {
     path: "/secretaria",
     file: "secretaria.html",
     title: `Secretaría · ${SITE_NAME}`,

@@ -1,4 +1,4 @@
-import type { AreaDeInteres, EntidadFederal } from "@shared/membership/catalog";
+import type { AreaDeInteres } from "@shared/membership/catalog";
 
 /**
  * Modelo de contenido institucional. Todo es `Readonly`: el contenido se edita
@@ -35,19 +35,6 @@ export type Hito = Readonly<{
   anio: number;
   titulo: string;
   descripcion: string;
-}>;
-
-export type CategoriaDirectorio = "Activo" | "Asociado" | "Honorario";
-
-export type FichaDirectorio = Readonly<{
-  id: string;
-  nombre: string;
-  categoria: CategoriaDirectorio;
-  areas: readonly AreaDeInteres[];
-  ciudad: string;
-  entidad: EntidadFederal;
-  /** Fecha ISO (AAAA-MM-DD) hasta la que la membresía fue verificada por secretaría. */
-  verificadoHasta: string;
 }>;
 
 export type EstadoEvento = "PROXIMO" | "REALIZADO";

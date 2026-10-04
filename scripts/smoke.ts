@@ -55,6 +55,26 @@ const checks: readonly Check[] = [
     },
   },
   {
+    nombre: "Directorio: respuesta acotada, cacheable y sin datos de contacto",
+    run: async base => {
+      const res = await fetch(new URL("/api/v1/directory?pageSize=5", base));
+      // Sin base de datos configurada la ruta no existe: es un estado válido (404).
+      if (res.status === 404)
+        return "404 (sin base de datos: directorio no habilitado)";
+      expect(res.status === 200, `estado ${res.status}`);
+      expect(
+        (res.headers.get("cache-control") ?? "").includes("s-maxage"),
+        "falta Cache-Control con s-maxage"
+      );
+      const text = await res.text();
+      expect(
+        !/@|telefono|memberId/i.test(text),
+        "la respuesta expone datos de contacto"
+      );
+      return "200 · cacheable · sin contacto";
+    },
+  },
+  {
     nombre: "Página principal y cabeceras de seguridad",
     run: async base => {
       const res = await fetch(base);

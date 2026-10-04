@@ -12,6 +12,7 @@ import {
 import { createJwtService } from "./auth/jwt";
 import { createAuthModule, type AuthModule } from "./auth/module";
 import { createAuthService } from "./auth/service";
+import { createDirectoryService } from "./directory/service";
 import { PostgresApplicationIntake } from "./membership/adapters/postgres-intake";
 import { createApplicationReview } from "./membership/review";
 import { describeConfigError, loadConfig, type AppConfig } from "./config";
@@ -144,6 +145,7 @@ function main(config: AppConfig): void {
     cookieSecure: config.auth?.cookieSecure ?? config.env === "production",
     auth: composeAuth(config, pool),
     review: pool ? createApplicationReview(pool) : null,
+    directory: pool ? createDirectoryService(pool) : null,
   });
 
   const server = app.listen(config.port, () => {

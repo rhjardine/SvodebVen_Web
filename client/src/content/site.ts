@@ -1,7 +1,6 @@
 import type {
   Disciplina,
   EventoSociedad,
-  FichaDirectorio,
   Hito,
   JuntaDirectiva,
   Organizacion,
@@ -56,9 +55,6 @@ export const JUNTA_DIRECTIVA: JuntaDirectiva | null = null;
 
 /** PENDIENTE: hitos históricos verificados (fundación, primeras jornadas, afiliaciones). */
 export const HITOS: readonly Hito[] = Object.freeze([]);
-
-/** Solo fichas verificadas por secretaría y con consentimiento expreso del miembro. */
-export const DIRECTORIO: readonly FichaDirectorio[] = Object.freeze([]);
 
 export const EVENTOS: readonly EventoSociedad[] = Object.freeze([
   Object.freeze({

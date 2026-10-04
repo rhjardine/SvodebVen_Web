@@ -18,9 +18,12 @@ import { rateLimit } from "./http/rate-limit";
 import { securityHeaders } from "./http/security-headers";
 import { respondError } from "./http/respond";
 import type { RouteDeps } from "./http/route";
+import { DIRECTORY_ENDPOINT } from "../shared/directory/contract";
 import { AUTH_BASE } from "../shared/auth/contract";
 import { mountAuthRoutes, mountAuthUnavailable } from "./auth/http-routes";
 import type { AuthModule } from "./auth/module";
+import { mountDirectoryRoutes } from "./directory/http-routes";
+import type { DirectoryService } from "./directory/service";
 import { mountAdminApplicationRoutes } from "./membership/admin-routes";
 import type { ApplicationReview } from "./membership/review";
 import { mountMembershipRoutes } from "./membership/http-routes";
@@ -47,6 +50,9 @@ export type AppDeps = Readonly<{
   cookieSecure: boolean;
   /** Revisión de expedientes (requiere base de datos); `null` = rutas admin inexistentes. */
   review?: ApplicationReview | null;
+  /** Directorio de especialistas (requiere base de datos). */
+  directory?: DirectoryService | null;
+  directoryRateLimit?: Readonly<{ windowMs: number; max: number }>;
   /** Módulo de autenticación; `null` si no hay base de datos (rutas /auth responden 503). */
   auth: AuthModule | null;
 }>;
@@ -163,6 +169,23 @@ export function createApp(deps: AppDeps): Express {
   );
   if (deps.auth) mountAuthRoutes(app, deps.auth, routeDeps);
   else mountAuthUnavailable(app, routeDeps);
+
+  // Directorio: lectura pública acotada (antiraspado) y rutas de miembro/secretaría con sesión.
+  if (deps.directory && deps.auth) {
+    app.use(
+      DIRECTORY_ENDPOINT,
+      originGuard(deps.allowedOrigins),
+      rateLimit(deps.directoryRateLimit ?? { windowMs: 60 * 1000, max: 60 })
+    );
+    app.use(
+      ["/api/v1/members", "/api/v1/admin/directory"],
+      originGuard(deps.allowedOrigins),
+      rateLimit({ windowMs: 60 * 1000, max: 120 }),
+      express.json({ limit: "4kb", strict: true }),
+      bodyParserErrors
+    );
+    mountDirectoryRoutes(app, deps.directory, routeDeps);
+  }
 
   // Panel de secretaría: solo con base de datos y sesión; límites y cuerpos acotados.
   if (deps.review && deps.auth) {

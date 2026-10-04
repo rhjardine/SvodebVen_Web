@@ -8,6 +8,7 @@ import {
   type ApplicationSummary,
 } from "@shared/membership/admin-contract";
 import { ESTADOS, type Estado, type Evento } from "@shared/membership/workflow";
+import { DirectoryAdmin } from "@/features/directory/DirectoryAdmin";
 import { PageShell } from "@/components/layout/PageShell";
 import { callApi, type ClientError } from "@/lib/api";
 
@@ -260,6 +261,7 @@ export default function Secretaria() {
             )}
           </div>
         )}
+        {access === "granted" && <DirectoryAdmin />}
       </section>
     </PageShell>
   );

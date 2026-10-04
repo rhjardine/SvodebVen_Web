@@ -198,6 +198,14 @@ export function createApplicationReview(pool: DbPool): ApplicationReview {
           const row = rows.value[0];
           if (!row) return err({ kind: "NOT_FOUND" });
 
+          // Lectura de datos personales de un postulante: queda registrada (quién y cuándo).
+          const viewed = await tx.query(
+            `INSERT INTO audit_log (actor_id, actor_role, accion, entidad, entidad_id)
+             VALUES ($1, $2, 'application.view', 'applications', $3)`,
+            [identity.memberId, identity.role, id]
+          );
+          if (!viewed.success) return err(toStorage(viewed.error));
+
           const events = await tx.select(
             z.object({
               desde: EstadoSchema.nullable(),

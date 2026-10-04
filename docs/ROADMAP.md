@@ -153,10 +153,16 @@ Pendiente (depende de la directiva, ver §3):
 - El limitador de tasa es en memoria: con varias réplicas hay que moverlo a Redis/Postgres.
 - Carga de documentos (bucket privado, URLs firmadas) pasó al sprint 5.
 
-### Sprint 4 · CMS y directorio (3 semanas)
+### Sprint 4 · Directorio ✅ (entregado) · CMS pendiente
 
-- CMS para directiva, eventos, hitos y fichas.
-- Directorio: consentimiento por miembro, fecha de verificación, URL por perfil (`/especialistas/:slug`) y solicitud de baja.
+- **Directorio público:** `GET /api/v1/directory` con búsqueda (sin acentos, varias palabras), filtros por área y estado, `pageSize` ≤ 20, página ≤ 50 (máximo 1000 fichas alcanzables), límite de 60 consultas/min por IP y `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`. La ficha pública **no contiene correo, teléfono ni el identificador del miembro**.
+- **Privacidad impuesta por la base (RLS):** solo se ve una ficha publicada, con consentimiento y verificación vigente (fecha de Caracas). Un miembro suspendido sale del directorio al instante (disparador). Nadie puede publicar sin consentimiento (restricción `CHECK`).
+- **Autogestión:** `/mi-ficha` (noindex) — el miembro decide si aparece, edita sus datos y puede eliminarse. Cambiar nombre, ciudad, estado o áreas **invalida la verificación** (nadie conserva el sello bajo otro nombre). Un miembro no puede tocar los campos de verificación (RLS + disparador, probado).
+- **Verificación:** en `/secretaria`, secretaría/admin fija la vigencia (hasta 400 días) o despublica; despublicar borra la verificación, así que el miembro no reaparece solo. Todo queda en `audit_log`.
+- **Cliente:** búsqueda con debounce de 300 ms, estado en la URL (leído con el mismo esquema Zod que la API; valores manipulados se ignoran campo a campo), paginación, botón Atrás y respuestas viejas descartadas. Verificado en navegador real: una sola petición por búsqueda, sin errores de consola ni CSP.
+- **Endurecimiento tras la revisión de seguridad del sprint 3:** la secretaría ya no puede crear ni promover cuentas de personal (solo admin; migración 0003); la lectura de datos de un postulante queda auditada; el limitador de tasa tiene memoria acotada.
+- **Fuera de este sprint:** CMS de directiva, eventos e hitos (el contenido sigue en `client/src/content`); URL por perfil (`/especialistas/:slug`); visor PDF y URLs firmadas del área de miembros (necesitan almacenamiento R2, sprint 5).
+- **Límite conocido:** la búsqueda usa `LIKE` sobre un texto normalizado. Es adecuado para cientos o pocos miles de fichas; con más, conviene `pg_trgm` (requiere permiso de extensiones en el proveedor).
 
 ### Sprint 5 · Eventos e inscripciones
 
