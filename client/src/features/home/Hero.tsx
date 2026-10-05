@@ -1,5 +1,5 @@
 import { ArrowRight, BadgeCheck } from "lucide-react";
-import { ToothLineArt } from "@/components/brand/ToothLineArt";
+import { Emblem } from "@/components/brand/Emblem";
 import { DISCIPLINAS, ORGANIZACION } from "@/content/site";
 
 export function Hero() {
@@ -12,13 +12,16 @@ export function Hero() {
       {/* Fondo 100 % CSS/SVG: el LCP es el titular, no una imagen pesada. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(60rem_40rem_at_78%_35%,rgba(46,90,168,0.55),transparent_65%),linear-gradient(180deg,var(--color-navy-950),var(--color-navy-900))]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(60rem_40rem_at_78%_35%,rgba(47,97,144,0.55),transparent_65%),linear-gradient(180deg,var(--color-navy-950),var(--color-navy-900))]"
       />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 right-[-12rem] -z-10 hidden size-[44rem] -translate-y-1/2 rounded-full border border-aqua-300/10 md:block lg:right-[-6rem]"
       />
-      <ToothLineArt className="pointer-events-none absolute top-1/2 right-[-3rem] -z-10 hidden w-[30rem] -translate-y-[46%] opacity-95 md:block lg:right-[4%] lg:w-[34rem]" />
+      <Emblem
+        variant="on-dark"
+        className="pointer-events-none absolute top-1/2 right-[-3rem] -z-10 hidden w-[30rem] -translate-y-1/2 opacity-90 md:block lg:right-[4%] lg:w-[34rem]"
+      />
 
       <div className="container-site py-20 sm:py-24 lg:py-32">
         <div className="max-w-2xl lg:max-w-3xl">

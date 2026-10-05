@@ -22,7 +22,10 @@ import { DIRECTORY_ENDPOINT } from "../shared/directory/contract";
 import { AUTH_BASE } from "../shared/auth/contract";
 import { mountAuthRoutes, mountAuthUnavailable } from "./auth/http-routes";
 import type { AuthModule } from "./auth/module";
-import { mountDirectoryRoutes } from "./directory/http-routes";
+import {
+  mountDirectoryRoutes,
+  mountDirectoryUnavailable,
+} from "./directory/http-routes";
 import type { DirectoryService } from "./directory/service";
 import { mountAdminApplicationRoutes } from "./membership/admin-routes";
 import type { ApplicationReview } from "./membership/review";
@@ -185,6 +188,13 @@ export function createApp(deps: AppDeps): Express {
       bodyParserErrors
     );
     mountDirectoryRoutes(app, deps.directory, routeDeps);
+  } else {
+    app.use(
+      DIRECTORY_ENDPOINT,
+      originGuard(deps.allowedOrigins),
+      rateLimit(deps.directoryRateLimit ?? { windowMs: 60 * 1000, max: 60 })
+    );
+    mountDirectoryUnavailable(app, routeDeps);
   }
 
   // Panel de secretaría: solo con base de datos y sesión; límites y cuerpos acotados.

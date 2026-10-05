@@ -142,3 +142,28 @@ export function mountDirectoryRoutes(
     route
   );
 }
+
+/**
+ * Sin base de datos el directorio simplemente está vacío: respuesta 200 veraz (no hay fichas
+ * verificadas) en lugar de un 404 que ensucia la consola del navegador.
+ */
+export function mountDirectoryUnavailable(
+  target: IRouter,
+  route: RouteDeps
+): void {
+  mountRoute(
+    target,
+    listDirectoryContract,
+    ({ query }) =>
+      Promise.resolve(
+        ok({
+          items: [],
+          page: query.page,
+          pageSize: query.pageSize,
+          total: 0,
+          totalPages: 1,
+        })
+      ),
+    route
+  );
+}

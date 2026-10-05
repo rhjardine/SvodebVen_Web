@@ -10,16 +10,16 @@
  * Todos los pares texto/fondo usados cumplen WCAG AA (≥ 4.5:1).
  */
 @theme {
-  --color-navy-950: #071238;
-  --color-navy-900: #0b1a4a;
-  --color-navy-800: #142a66;
-  --color-royal-700: #24478a;
-  --color-royal-600: #2e5aa8;
-  --color-royal-500: #4a76c0;
-  --color-aqua-500: #6f9ca6;
-  --color-aqua-400: #8db3ba;
-  --color-aqua-300: #a9cdd3;
-  --color-aqua-100: #e4eff1;
+  --color-navy-950: #00133a;
+  --color-navy-900: #002050;
+  --color-navy-800: #0a3066;
+  --color-royal-700: #285078;
+  --color-royal-600: #2f6190;
+  --color-royal-500: #4a7ba8;
+  --color-aqua-500: #58a0a8;
+  --color-aqua-400: #7bb3b9;
+  --color-aqua-300: #a4cdd1;
+  --color-aqua-100: #e3f0f1;
   --color-mist: #f3f6f7;
   --color-ink: #0e1b3d;
   --color-ink-soft: #4a5873;
@@ -102,7 +102,7 @@
     @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[0.95rem] font-bold transition duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
-    @apply bg-royal-600 text-white shadow-[0_10px_24px_-12px_rgba(46,90,168,0.9)] hover:bg-royal-700;
+    @apply bg-royal-600 text-white shadow-[0_10px_24px_-12px_rgba(47,97,144,0.9)] hover:bg-royal-700;
   }
   .btn-secondary {
     @apply border border-royal-600/35 text-royal-700 hover:border-royal-600 hover:bg-aqua-100;
