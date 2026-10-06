@@ -90,9 +90,14 @@ export function SiteFooter() {
             © {year} {ORGANIZACION.sigla}
             {ORGANIZACION.rif && <> · RIF {ORGANIZACION.rif}</>}
           </p>
-          <a href="/privacidad" className="hover:text-white hover:underline">
-            Aviso de privacidad
-          </a>
+          <nav aria-label="Documentos legales" className="flex gap-5">
+            <a href="/aviso-legal" className="hover:text-white hover:underline">
+              Aviso legal
+            </a>
+            <a href="/privacidad" className="hover:text-white hover:underline">
+              Aviso de privacidad
+            </a>
+          </nav>
         </div>
       </div>
     </footer>

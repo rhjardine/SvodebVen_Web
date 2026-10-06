@@ -19,6 +19,11 @@ export const PRERENDERED_ROUTES: readonly PrerenderedRoute[] = Object.freeze([
     title: `${SITE_NAME} · Sociedad Venezolana de Operatoria Dental, Estética y Biomateriales`,
   },
   {
+    path: "/aviso-legal",
+    file: "aviso-legal.html",
+    title: `Aviso legal · ${SITE_NAME}`,
+  },
+  {
     path: "/privacidad",
     file: "privacidad.html",
     title: `Aviso de privacidad · ${SITE_NAME}`,

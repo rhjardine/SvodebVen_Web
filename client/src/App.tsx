@@ -1,5 +1,6 @@
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AvisoLegal from "./pages/AvisoLegal";
 import Access from "./pages/Access";
 import Home from "./pages/Home";
 import MyListing from "./pages/MyListing";
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/acceso" component={Access} />
         <Route path="/secretaria" component={Secretaria} />
         <Route path="/mi-ficha" component={MyListing} />
+        <Route path="/aviso-legal" component={AvisoLegal} />
         <Route path="/privacidad" component={Privacy} />
         <Route component={NotFound} />
       </Switch>
