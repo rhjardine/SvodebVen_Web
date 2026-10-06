@@ -1,5 +1,5 @@
 import { ArrowRight, BadgeCheck } from "lucide-react";
-import { Emblem } from "@/components/brand/Emblem";
+import { Logo, LogoPlaque } from "@/components/brand/Logo";
 import { DISCIPLINAS, ORGANIZACION } from "@/content/site";
 
 export function Hero() {
@@ -18,10 +18,9 @@ export function Hero() {
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 right-[-12rem] -z-10 hidden size-[44rem] -translate-y-1/2 rounded-full border border-aqua-300/10 md:block lg:right-[-6rem]"
       />
-      <Emblem
-        variant="on-dark"
-        className="pointer-events-none absolute top-1/2 right-[-3rem] -z-10 hidden w-[30rem] -translate-y-1/2 opacity-90 md:block lg:right-[4%] lg:w-[34rem]"
-      />
+      <LogoPlaque className="pointer-events-none absolute top-1/2 right-[-1rem] -z-10 hidden w-[27rem] -translate-y-1/2 md:block lg:right-[4%] lg:w-[31rem]">
+        <Logo variant="full" className="w-full" />
+      </LogoPlaque>
 
       <div className="container-site py-20 sm:py-24 lg:py-32">
         <div className="max-w-2xl lg:max-w-3xl">

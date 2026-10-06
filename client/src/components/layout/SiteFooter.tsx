@@ -1,5 +1,5 @@
 import { AtSign, Mail } from "lucide-react";
-import { Wordmark } from "@/components/brand/Wordmark";
+import { Logo, LogoPlaque } from "@/components/brand/Logo";
 import { NAV_ITEMS } from "@/content/navigation";
 import { ORGANIZACION } from "@/content/site";
 
@@ -17,7 +17,9 @@ export function SiteFooter() {
           <h2 id="footer-title" className="sr-only">
             Contacto e información institucional
           </h2>
-          <Wordmark />
+          <LogoPlaque className="w-fit max-w-full">
+            <Logo variant="full" className="w-60 max-w-full sm:w-64" />
+          </LogoPlaque>
           <p className="mt-6 max-w-sm text-base leading-7 text-on-navy">
             Operatoria dental, estética y biomateriales con rigor científico y
             vocación de servicio.

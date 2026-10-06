@@ -1,6 +1,6 @@
 import { Menu, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Wordmark } from "@/components/brand/Wordmark";
+import { Logo } from "@/components/brand/Logo";
 import { CTA_AFILIACION, NAV_ITEMS } from "@/content/navigation";
 
 export function SiteHeader() {
@@ -30,15 +30,14 @@ export function SiteHeader() {
   }, [open, close]);
 
   return (
-    <header className="on-navy sticky top-0 z-50 border-b border-white/10 bg-navy-950 text-white">
-      <div className="container-site flex h-[4.75rem] items-center justify-between gap-6">
+    <header className="sticky top-0 z-50 border-b border-line bg-white text-ink">
+      <div className="container-site flex h-[5.25rem] items-center justify-between gap-6">
         <a
           href="/#inicio"
           aria-label="SVODEB, ir al inicio"
           onClick={() => close(false)}
         >
-          <Wordmark showFullName={false} className="sm:hidden" />
-          <Wordmark className="hidden sm:flex" />
+          <Logo priority className="h-[3.6rem] w-auto sm:h-[4rem]" />
         </a>
 
         <nav
@@ -49,7 +48,7 @@ export function SiteHeader() {
             <a
               key={item.href}
               href={item.href}
-              className="rounded-full px-3.5 py-2 text-[0.95rem] font-semibold text-on-navy transition-colors hover:bg-white/8 hover:text-white"
+              className="rounded-full px-3.5 py-2 text-[0.95rem] font-semibold text-ink-soft transition-colors hover:bg-mist hover:text-ink"
             >
               {item.label}
             </a>
@@ -65,7 +64,7 @@ export function SiteHeader() {
         <button
           ref={toggleRef}
           type="button"
-          className="flex size-11 items-center justify-center rounded-xl border border-white/20 lg:hidden"
+          className="flex size-11 items-center justify-center rounded-xl border border-line text-ink lg:hidden"
           aria-expanded={open}
           aria-controls={menuId}
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
@@ -83,7 +82,7 @@ export function SiteHeader() {
         id={menuId}
         aria-label="Principal (móvil)"
         hidden={!open}
-        className="border-t border-white/10 bg-navy-950 lg:hidden"
+        className="border-t border-line bg-white lg:hidden"
       >
         <ul className="container-site flex flex-col gap-1 py-4">
           {NAV_ITEMS.map(item => (
@@ -91,7 +90,7 @@ export function SiteHeader() {
               <a
                 href={item.href}
                 onClick={() => close(false)}
-                className="flex min-h-12 items-center rounded-xl px-3 text-base font-semibold text-on-navy hover:bg-white/8 hover:text-white"
+                className="flex min-h-12 items-center rounded-xl px-3 text-base font-semibold text-ink-soft hover:bg-mist hover:text-ink"
               >
                 {item.label}
               </a>
