@@ -49,7 +49,7 @@ export default tseslint.config(
   {
     // Lógica de negocio: prohibido lanzar excepciones.
     files: ["shared/**/*.ts", "server/**/*.ts"],
-    ignores: ["server/index.ts", "server/release.ts"], // raíz de composición: decide terminar el proceso
+    ignores: ["server/index.ts", "server/start.ts", "server/release-cli.ts"], // raíz de composición: decide terminar el proceso
     rules: {
       "no-restricted-syntax": [
         "error",

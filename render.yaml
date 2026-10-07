@@ -2,8 +2,8 @@
 # Despliega el contenedor del Dockerfile + PostgreSQL. Los secretos (sync: false) se cargan en el
 # panel de Render: nunca se versionan en el repositorio.
 #
-# Cada despliegue ejecuta primero `node dist/release.js` (crea/actualiza el esquema con las migraciones)
-# y solo si termina bien arranca el servidor.
+# Cada arranque (`node dist/start.js`, CMD del Dockerfile) ejecuta primero las migraciones y solo si
+# terminan bien inicia el servidor.
 databases:
   - name: svodeb-db
     plan: basic-256mb
@@ -20,7 +20,8 @@ services:
     branch: main
     autoDeploy: true
     healthCheckPath: /api/health
-    dockerCommand: sh -c "node dist/release.js && node dist/index.js"
+    # Sin dockerCommand: se usa el CMD del Dockerfile (node dist/start.js). No uses `sh -c "…"` en este
+    # campo: Render conserva las comillas como texto y el arranque falla con «not found» (estado 127).
     envVars:
       - key: NODE_ENV
         value: production

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite --host",
     "dev:api": "PORT=3001 tsx watch server/index.ts",
-    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir ../dist/ssr && tsx scripts/prerender.ts && esbuild server/index.ts server/release.ts --platform=node --target=node20 --packages=external --bundle --format=esm --outdir=dist && node -e \"require('node:fs').cpSync('db/migrations','dist/migrations',{recursive:true})\"",
+    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir ../dist/ssr && tsx scripts/prerender.ts && esbuild server/index.ts server/start.ts server/release-cli.ts --platform=node --target=node20 --packages=external --bundle --format=esm --outdir=dist && node -e \"require('node:fs').cpSync('db/migrations','dist/migrations',{recursive:true})\"",
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",

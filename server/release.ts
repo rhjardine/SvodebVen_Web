@@ -1,11 +1,12 @@
 /**
- * Paso de liberación: corre ANTES de arrancar el servidor en cada despliegue.
+ * Paso de liberación: corre ANTES de arrancar el servidor en cada despliegue
+ * (lo invoca `server/start.ts`; también hay un CLI en `server/release-cli.ts`).
  * - Con DB_APP_ROLE + DB_APP_PASSWORD intenta crear/actualizar el rol de la aplicación (separación
  *   dueño/aplicación). Si el proveedor no permite crear roles, falla con un mensaje claro.
  * - Sin ellos, usa el propio usuario de la conexión como rol de la aplicación ("rol único"): las
  *   políticas RLS siguen aplicando (FORCE ROW LEVEL SECURITY), pero la aplicación podría ejecutar DDL.
  * - Aplica las migraciones pendientes (idempotente, con bloqueo consultivo).
- * Raíz de composición: único lugar (junto a index.ts) que decide terminar el proceso.
+ * No termina el proceso: devuelve el código de salida (0 = listo) para que lo decida la raíz de composición.
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -76,9 +77,8 @@ async function resolveAppRole(
   }
 }
 
-async function main(): Promise<number> {
-  const connectionString =
-    process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL;
+export async function runRelease(env: NodeJS.ProcessEnv): Promise<number> {
+  const connectionString = env.DATABASE_MIGRATION_URL ?? env.DATABASE_URL;
   if (!connectionString) {
     console.log(
       "release: sin base de datos configurada; no hay nada que migrar."
@@ -87,8 +87,8 @@ async function main(): Promise<number> {
   }
   const setup = await resolveAppRole(
     connectionString,
-    process.env.DB_APP_ROLE,
-    process.env.DB_APP_PASSWORD
+    env.DB_APP_ROLE,
+    env.DB_APP_PASSWORD
   );
   if (!setup.success) {
     console.error(`release: ${setup.error}`);
@@ -120,5 +120,3 @@ async function main(): Promise<number> {
   );
   return 0;
 }
-
-process.exit(await main());
