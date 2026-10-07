@@ -71,7 +71,7 @@ export type AuthConfig = Readonly<{
 
 export type ConfigError =
   | Readonly<{ kind: "INVALID_ENV"; issues: readonly string[] }>
-  | Readonly<{ kind: "SMTP_INCOMPLETE" }>
+  | Readonly<{ kind: "SMTP_INCOMPLETE"; missing: readonly string[] }>
   | Readonly<{ kind: "AUTH_INCOMPLETE"; missing: readonly string[] }>;
 
 export function describeConfigError(error: ConfigError): string {
@@ -79,7 +79,7 @@ export function describeConfigError(error: ConfigError): string {
     case "INVALID_ENV":
       return `Configuración inválida: ${error.issues.join("; ")}`;
     case "SMTP_INCOMPLETE":
-      return "SMTP parcialmente configurado: define SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM y SECRETARIA_EMAIL.";
+      return `SMTP parcialmente configurado. Faltan: ${error.missing.join(", ")} (todas son obligatorias: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM y SECRETARIA_EMAIL).`;
     case "AUTH_INCOMPLETE":
       return `Con DATABASE_URL el acceso de miembros requiere: ${error.missing.join(", ")}.`;
   }
@@ -100,17 +100,20 @@ export function loadConfig(
   }
   const e = parsed.data;
 
-  const smtpFields = [
-    e.SMTP_HOST,
-    e.SMTP_PORT,
-    e.SMTP_USER,
-    e.SMTP_PASSWORD,
-    e.MAIL_FROM,
-    e.SECRETARIA_EMAIL,
+  const smtpFields: readonly (readonly [string, unknown])[] = [
+    ["SMTP_HOST", e.SMTP_HOST],
+    ["SMTP_PORT", e.SMTP_PORT],
+    ["SMTP_USER", e.SMTP_USER],
+    ["SMTP_PASSWORD", e.SMTP_PASSWORD],
+    ["MAIL_FROM", e.MAIL_FROM],
+    ["SECRETARIA_EMAIL", e.SECRETARIA_EMAIL],
   ];
-  const smtpProvided = smtpFields.filter(value => value !== undefined).length;
-  if (smtpProvided > 0 && smtpProvided < smtpFields.length) {
-    return err({ kind: "SMTP_INCOMPLETE" });
+  // Solo se informan los NOMBRES de las variables que faltan, nunca sus valores.
+  const smtpMissing = smtpFields
+    .filter(([, value]) => value === undefined)
+    .map(([name]) => name);
+  if (smtpMissing.length > 0 && smtpMissing.length < smtpFields.length) {
+    return err({ kind: "SMTP_INCOMPLETE", missing: smtpMissing });
   }
 
   const smtp: SmtpIntakeConfig | null =
