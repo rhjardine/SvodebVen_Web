@@ -66,6 +66,15 @@ Pon delante un proxy con HTTPS (Caddy, Nginx o Traefik) y define `TRUST_PROXY_HO
 
 Cloudflare cachea por extensión de archivo: **no cachea el JSON** de `/api/v1/directory` por defecto. Crea una _Cache Rule_: si la ruta empieza por `/api/v1/directory`, "Eligible for cache" y "Respect origin TTL" (el servidor ya envía `s-maxage=60`). No cachees nada bajo `/api/v1/auth`, `/api/v1/members` ni `/api/v1/admin` (son `no-store`). Si el sitio va detrás de Cloudflare, no confíes en `CF-Connecting-IP` sin verificar que la petición viene de Cloudflare, o el límite por IP se podrá evadir. Ajusta `TRUST_PROXY_HOPS` al número real de proxies.
 
+### Render: workspace, base de datos y paso de liberación
+
+- **Facturación:** Render cobra por _workspace_, no por proyecto. Crea un workspace propio de SVODEB con su método de pago para no mezclar costos con otros proyectos. Verifica en Billing el plan del workspace y su cuota de plataforma antes de crear recursos.
+- **Región:** `virginia` (la más cercana a Venezuela entre las disponibles). Servicio web y base deben estar en la misma región para usar la red privada.
+- **Base de datos:** `ipAllowList` vacía = sin acceso desde Internet; solo el servicio web, por la red privada. Para consultarla desde tu equipo agrega tu IP en _Networking_.
+- **Paso de liberación (`dist/release.js`):** corre antes de arrancar y aplica las migraciones. Se ve en los _Logs_ del despliegue (`release: …`). Si falla, el despliegue no arranca.
+- **Rol único (limitación honesta):** Render entrega un solo usuario de base de datos. Con `DB_APP_ROLE` y `DB_APP_PASSWORD` el paso de liberación intenta crear un rol separado para la aplicación (sin DDL); si no los defines, usa el mismo usuario: las políticas RLS siguen aplicando (`FORCE ROW LEVEL SECURITY`, usuario sin superusuario ni BYPASSRLS), pero la aplicación conserva permiso de DDL. Para producción conviene el rol separado.
+- **Variables obligatorias en producción con base de datos:** `DATABASE_URL` (usa _Add from Database → Internal Database URL_), `JWT_SECRET` (botón _Generate_), `PUBLIC_SITE_URL`, `ALLOWED_ORIGINS` y todas las `SMTP_*`: sin correo nadie podría iniciar sesión, por eso el servidor se niega a arrancar.
+
 ## 5. Verificación después de cada despliegue
 
 ```bash
